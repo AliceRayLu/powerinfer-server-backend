@@ -3,22 +3,21 @@ package com.powerinfer.server.controller;
 import com.powerinfer.server.entity.User;
 import com.powerinfer.server.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @CrossOrigin
+@RequestMapping("/usr")
 public class UserController {
     @Autowired
     private UserService userService;
 
-    @GetMapping("/hello")
+    @PostMapping("/hello")
     public void hello(){
         System.out.println("Hello!");
     }
 
-    @GetMapping("/login")
+    @PostMapping("/login")
     public String login(String email, String passwd){
         User user = userService.getUserByEmail(email);
         if(user == null){
@@ -30,13 +29,13 @@ public class UserController {
         return "wrong password";
     }
 
-    @GetMapping("/getName")
+    @PostMapping("/getName")
     public String getName(String uid){
         User user = userService.getById(uid);
         return user.getName();
     }
 
-    @GetMapping("/register")
+    @PostMapping("/register")
     public boolean register(String uname, String passwd, String email){
         User temp = userService.getUserByEmail(email);
         if(temp != null) {return false;}
@@ -45,7 +44,14 @@ public class UserController {
         return true;
     }
 
-    @GetMapping("/usr/update")
+    @PostMapping("/getInfo")
+    public User getInfo(String uid){
+        User user = userService.getById(uid);
+        user.setPasswd(null);
+        return user;
+    }
+
+    @PostMapping("/update")
     public boolean update(String uid, String uname, String email, String bio){
         User user = userService.getById(uid);
         if(!email.equals(user.getEmail())){
@@ -60,7 +66,7 @@ public class UserController {
         return userService.updateById(user);
     }
 
-    @GetMapping("/passwd/update")
+    @PostMapping("/passwd/update")
     public boolean updatePasswd(String uid, String old_passwd, String new_passwd){
         User user = userService.getById(uid);
         if(!old_passwd.equals(user.getPasswd())){

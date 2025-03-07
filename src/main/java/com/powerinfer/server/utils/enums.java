@@ -1,6 +1,6 @@
-package com.powerinfer.server;
+package com.powerinfer.server.utils;
 
-public class utils {
+public class enums {
     public enum KeyType {
         ssh,
         hf,
