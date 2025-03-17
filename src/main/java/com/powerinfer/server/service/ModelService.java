@@ -1,4 +1,8 @@
 package com.powerinfer.server.service;
 
-public interface ModelService {
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.powerinfer.server.entity.Model;
+
+public interface ModelService extends IService<Model> {
+    Model getModelId(String name, String uid);
 }

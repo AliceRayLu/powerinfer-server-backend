@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
-@TableName("user")
+@TableName("users")
 public class User {
     @TableId(type = IdType.ASSIGN_UUID)
     private String uid;
@@ -12,13 +12,6 @@ public class User {
     private String passwd;
     private String email;
     private String bio;
-
-    public User() {}
-    public User(String name, String passwd, String email) {
-        this.name = name;
-        this.passwd = passwd;
-        this.email = email;
-    }
 
     public String getUid() { return uid; }
     public void setUid(String uid) { this.uid = uid; }

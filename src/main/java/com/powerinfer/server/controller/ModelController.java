@@ -1,10 +1,9 @@
 package com.powerinfer.server.controller;
 
 import com.powerinfer.server.entity.Model;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.powerinfer.server.service.ModelService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 
@@ -12,6 +11,9 @@ import java.util.ArrayList;
 @CrossOrigin
 @RequestMapping("/model")
 public class ModelController {
+    @Autowired
+    private ModelService modelService;
+
     @PostMapping("/pub/get")
     public ArrayList<Model> getPub(String search){
         // get all the public model ranks
@@ -19,14 +21,24 @@ public class ModelController {
     }
 
     @PostMapping("/usr/get")
-    public ArrayList<Model> getUser(String uid, boolean auth,String search){
-        // get all the models belong to one specific user
+    public ArrayList<Model> getUser(String uid, String search){
+        // get all the pub models belong to one user
+        return null;
+    }
+
+    @PostMapping({"/usr/get/own", "/client/get/own"})
+    public ArrayList<Model> getOwn(String uid, String search){
         return null;
     }
 
     @PostMapping("/detail")
-    public Model getDetail(String name){
+    public Model getDetail(String mid){
         // get the readme and other info about a specific model
         return null;
+    }
+
+    @PostMapping("/new")
+    public void addModel(@RequestBody Model model){
+        modelService.save(model);
     }
 }
