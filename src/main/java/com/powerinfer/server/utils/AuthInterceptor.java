@@ -8,13 +8,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-import java.security.Signature;
-import java.util.Base64;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+//import java.text.SimpleDateFormat;
+//import java.util.Date;
 
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
     @Autowired
     private KeyService keyService;
+//
+//    private String formatTimestamp(long timestamp) {
+//        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//        return sdf.format(new Date(timestamp));
+//    }
+
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -38,20 +46,25 @@ public class AuthInterceptor implements HandlerInterceptor {
         // check timestamp
         long time = Long.parseLong(timestamp_str);
         long current = System.currentTimeMillis();
-        if(Math.abs(time-current) > 3 * 60 * 1000){
+        if(Math.abs(time-current) > 5 * 60 * 1000){
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             response.getWriter().write("Response time out.");
             return false;
         }
         // check signature
-        Signature sig = Signature.getInstance("SHA256withRSA");
-        sig.initVerify(PublicKeyUtils.loadPubKey(pubkey));
-        sig.update(timestamp_str.getBytes());
-        if (!sig.verify(Base64.getDecoder().decode(signature))) {
-            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            response.getWriter().write("Can't verify signature.");
-            return false;
+        ProcessBuilder pb = new ProcessBuilder("python3", "server/src/main/resources/verify_signature.py", pubkey, timestamp_str, signature);
+        pb.redirectErrorStream(true);
+        Process p = pb.start();
+        BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+        String line;
+        while ((line = reader.readLine()) != null) {
+            if (!line.equals("True")) {
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.getWriter().write("Signature verification failed.");
+                return false;
+            }
         }
+
         request.setAttribute("uid", key.getUid());
 
         return true;
