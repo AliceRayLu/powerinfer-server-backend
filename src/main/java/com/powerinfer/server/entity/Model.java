@@ -18,8 +18,28 @@ public class Model {
     private int num_down; // number of download times
     private Date date; // last updated time
     private String uid;
-    @EnumValue
-    private enums.Arch arch;
 
     private String md; // markdown files
+
+    public Model(){
+        this.visibility = enums.Visibility.PUBLIC;
+        this.num_down = 0;
+        this.date = new Date();
+    }
+    public Model(String name, String uid, enums.Visibility visibility){
+        this.name = name;
+        this.uid = uid;
+        this.visibility = visibility;
+        this.num_down = 0;
+        this.date = new Date();
+    }
+
+    public enums.Visibility getVisibility() {
+        return visibility;
+    }
+    public String getMid() { return mid;}
+    public String getName() { return name;}
+    public int getNum_down() { return num_down;}
+    public Date getDate() { return date;}
+    public String getUid() { return uid;}
 }

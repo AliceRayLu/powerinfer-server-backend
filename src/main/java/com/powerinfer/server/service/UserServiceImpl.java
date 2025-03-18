@@ -16,4 +16,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public User getUserByEmail(String email) {
         return userMapper.selectOne(new QueryWrapper<User>().eq("email", email));
     }
+
+    @Override
+    public User getUserByUsername(String username) {
+        return userMapper.selectOne(new QueryWrapper<User>().eq("username", username));
+    }
 }

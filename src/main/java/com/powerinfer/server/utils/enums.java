@@ -7,13 +7,14 @@ public class enums {
     }
 
     public enum Visibility {
-        pub,
-        pvt,
+        PUBLIC,
+        PRIVATE,
     }
 
-    public enum Arch {
-        llama,
-        falcon,
-        opt,
+    public enum GetModelState {
+        SUCCESS,
+        MODEL_NOT_FOUND,
+        TYPE_NOT_FOUND,
+        MODEL_UNACCESSIBLE,
     }
 }

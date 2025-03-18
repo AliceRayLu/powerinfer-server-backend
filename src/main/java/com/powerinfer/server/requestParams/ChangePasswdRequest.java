@@ -1,6 +1,6 @@
 package com.powerinfer.server.requestParams;
 
-public class PasswdParams {
+public class ChangePasswdRequest {
     private String uid;
     private String old_passwd;
     private String new_passwd;

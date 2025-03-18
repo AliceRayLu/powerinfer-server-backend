@@ -18,8 +18,9 @@ public class KeyController {
     public boolean addKey(@RequestBody Key key){
         Key temp = keyService.getKeyByContent(key.getContent());
         if(temp != null){return false;}
+        System.out.println(key.getType());
         keyService.save(key);
-        // TODO: add into server file
+        // TODO: add into server file (if use ssh to transmit file)
         return true;
     }
 

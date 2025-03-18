@@ -15,6 +15,10 @@ public class Key {
     @EnumValue
     private enums.KeyType type;
 
+    public Key(){
+        this.type = enums.KeyType.ssh;
+    }
+
     public String getKid() {return kid;}
     public void setKid(String id) { this.kid = id;}
     public String getContent() {return content;}

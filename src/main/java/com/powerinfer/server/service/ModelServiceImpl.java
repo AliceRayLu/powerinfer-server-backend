@@ -13,7 +13,7 @@ public class ModelServiceImpl extends ServiceImpl<ModelMapper, Model> implements
     private ModelMapper modelMapper;
 
     @Override
-    public Model getModelId(String name, String uid) {
+    public Model getModel(String name, String uid) {
         return modelMapper.selectOne(new QueryWrapper<Model>().eq("name", name).eq("uid", uid));
     }
 }

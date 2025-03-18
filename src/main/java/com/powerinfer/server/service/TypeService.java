@@ -1,4 +1,11 @@
 package com.powerinfer.server.service;
 
-public interface TypeService {
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.powerinfer.server.entity.Type;
+
+import java.util.List;
+
+public interface TypeService extends IService<Type> {
+    List<Type> getAllTypes(String mid);
+    Type getTypeByMidAndName(String mid, String name);
 }

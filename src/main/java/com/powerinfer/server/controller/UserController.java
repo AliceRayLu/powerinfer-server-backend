@@ -1,7 +1,8 @@
 package com.powerinfer.server.controller;
 
 import com.powerinfer.server.entity.User;
-import com.powerinfer.server.requestParams.PasswdParams;
+import com.powerinfer.server.requestParams.ChangePasswdRequest;
+import com.powerinfer.server.responseParams.UserRegisterResponse;
 import com.powerinfer.server.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -37,11 +38,20 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public boolean register(@RequestBody User user){
+    public UserRegisterResponse register(@RequestBody User user){
+        UserRegisterResponse response = new UserRegisterResponse(true, true, true);
         User temp = userService.getUserByEmail(user.getEmail());
-        if(temp != null) {return false;}
-        userService.save(user);
-        return true;
+        if(temp != null) {
+            response.setSuccess();
+            response.setEmail();
+        }
+        temp = userService.getUserByUsername(user.getName());
+        if(temp != null) {
+            response.setSuccess();
+            response.setUsername();
+        }
+        if (response.getSuccess()) userService.save(user);
+        return response;
     }
 
     @PostMapping("/getInfo")
@@ -65,7 +75,7 @@ public class UserController {
     }
 
     @PostMapping("/passwd/update")
-    public boolean updatePasswd(@RequestBody PasswdParams params){
+    public boolean updatePasswd(@RequestBody ChangePasswdRequest params){
         User user = userService.getById(params.getUid());
         if(!params.getOld_passwd().equals(user.getPasswd())){
             return false;
