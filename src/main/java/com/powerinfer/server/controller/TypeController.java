@@ -8,9 +8,14 @@ import com.powerinfer.server.responseParams.GetModelResponse;
 import com.powerinfer.server.service.ModelService;
 import com.powerinfer.server.service.TypeService;
 import com.powerinfer.server.service.UserService;
+import com.powerinfer.server.utils.PartialResource;
 import com.powerinfer.server.utils.enums;
 import com.powerinfer.server.utils.enums.Visibility;
+import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,8 +24,11 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @CrossOrigin
@@ -33,7 +41,8 @@ public class TypeController {
     @Autowired
     private UserService userService;
 
-    private static final String UPLOAD_DIR = "D://uploaded//";
+    private static final String UPLOAD_DIR = "D://uploaded//ReluLLaMA-7B//";
+    private static final Logger logger = org.slf4j.LoggerFactory.getLogger(TypeController.class);
 
     @PostMapping(value = "/client/get", produces = "application/json")
     public GetModelResponse getModelType(@RequestAttribute("uid") String uid, @RequestBody GetModelRequest request){
@@ -63,7 +72,6 @@ public class TypeController {
             return response;
         }
         response.setModelType(type);
-        System.out.println("REACHING here====================>");
         return response;
     }
 
@@ -92,7 +100,7 @@ public class TypeController {
 
     }
 
-    @RequestMapping(path = "/client/upload", method = RequestMethod.HEAD)
+    @RequestMapping(path = "/upload", method = RequestMethod.HEAD)
     public ResponseEntity<?> getUploadStatus(@RequestParam String name) throws IOException {
         File file = new File( UPLOAD_DIR + name);
         if (file.exists()) {
@@ -104,7 +112,7 @@ public class TypeController {
         return ResponseEntity.notFound().build();
     }
 
-    @RequestMapping(path= "/client/upload", method = RequestMethod.PATCH)
+    @RequestMapping(path= "/upload", method = RequestMethod.PATCH)
     public ResponseEntity<?> uploadChunk(
             @RequestHeader("Content-Range") String contentRange,
             @RequestParam String name,
@@ -127,10 +135,64 @@ public class TypeController {
             return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT).build();
         }
     }
-}
 
-/**
- * The address manager:
- *
- *
- */
+    @PostMapping("/download")
+    public ResponseEntity<Resource> downloadLargeFile(@RequestHeader(value = "Range", required = false) String rangeHeader, @RequestParam String path) throws IOException {
+        Path filePath = Paths.get(path);
+        Resource resource = new UrlResource(filePath.toUri());
+
+        if (!resource.exists()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+        long fileSize = resource.contentLength();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + resource.getFilename());
+
+        if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
+            // 解析Range头部
+            String[] ranges = rangeHeader.substring(6).split("-");
+            long start = Long.parseLong(ranges[0]);
+            long end = ranges.length > 1 ? Long.parseLong(ranges[1]) : fileSize - 1;
+
+            // 设置Content-Range头部
+            headers.add(HttpHeaders.CONTENT_RANGE, "bytes " + start + "-" + end + "/" + fileSize);
+
+            // 返回部分内容
+            return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
+                    .headers(headers)
+                    .body(new PartialResource(resource, start, end));
+        } else {
+            // 返回完整文件
+            headers.add(HttpHeaders.CONTENT_LENGTH, String.valueOf(fileSize));
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(resource);
+        }
+    }
+
+    @PostMapping("/folder")
+    public ResponseEntity<Map<String, Object>> getFolderStructure(@RequestParam String path) {
+        System.out.println("file path " + path);
+        try {
+            File folder = new File(path);
+            Map<String, Object> structure = new HashMap<>();
+            File[] files = folder.listFiles();
+
+            if (files != null) {
+                for (File file : files) {
+                    if (file.isDirectory()) {
+                        structure.put(file.getName(), getFolderStructure(file.getPath()));
+                    } else {
+                        structure.put(file.getName(), file.getAbsolutePath());
+                    }
+                }
+
+            }else {
+                logger.warn("Model folder is empty or not exist. Searching folder: {}", path);
+            }
+            return ResponseEntity.ok(structure);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+}
