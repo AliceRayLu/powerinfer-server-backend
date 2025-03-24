@@ -19,6 +19,8 @@ public class Type {
     // TODO: files
     @JsonProperty("dir")
     private String dir; // directory of model files in server
+    @JsonProperty("dir_info")
     private String dir_info; // serialize as json format
-    private String meta;
+    @JsonProperty("size_info")
+    private String size_info; // record the size of a file
 }

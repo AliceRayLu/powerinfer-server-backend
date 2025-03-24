@@ -19,7 +19,7 @@ public class Model {
     private Date date; // last updated time
     private String uid;
 
-    private String md; // markdown files
+    private String md; // markdown files path
 
     public Model(){
         this.visibility = enums.Visibility.PUBLIC;

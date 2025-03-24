@@ -149,20 +149,16 @@ public class TypeController {
         headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + resource.getFilename());
 
         if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
-            // 解析Range头部
             String[] ranges = rangeHeader.substring(6).split("-");
             long start = Long.parseLong(ranges[0]);
             long end = ranges.length > 1 ? Long.parseLong(ranges[1]) : fileSize - 1;
 
-            // 设置Content-Range头部
             headers.add(HttpHeaders.CONTENT_RANGE, "bytes " + start + "-" + end + "/" + fileSize);
 
-            // 返回部分内容
             return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
                     .headers(headers)
                     .body(new PartialResource(resource, start, end));
         } else {
-            // 返回完整文件
             headers.add(HttpHeaders.CONTENT_LENGTH, String.valueOf(fileSize));
             return ResponseEntity.ok()
                     .headers(headers)
@@ -170,29 +166,36 @@ public class TypeController {
         }
     }
 
-    @PostMapping("/folder")
-    public ResponseEntity<Map<String, Object>> getFolderStructure(@RequestParam String path) {
-        System.out.println("file path " + path);
-        try {
-            File folder = new File(path);
-            Map<String, Object> structure = new HashMap<>();
-            File[] files = folder.listFiles();
-
-            if (files != null) {
-                for (File file : files) {
-                    if (file.isDirectory()) {
-                        structure.put(file.getName(), getFolderStructure(file.getPath()));
-                    } else {
-                        structure.put(file.getName(), file.getAbsolutePath());
-                    }
+    private Map<String, Object> getStructure(String path) {
+        File folder = new File(path);
+        Map<String, Object> structure = new HashMap<>();
+        File[] files = folder.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.getName().startsWith(".")) continue; // ignore all config files
+                if (file.isDirectory()) {
+                    structure.put(file.getName(), getStructure(file.getPath()));
+                } else {
+                    structure.put(file.getName(), file.getAbsolutePath());
                 }
-
-            }else {
-                logger.warn("Model folder is empty or not exist. Searching folder: {}", path);
             }
-            return ResponseEntity.ok(structure);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+
+        }else {
+            logger.warn("Model folder is empty or not exist. Searching folder: {}", path);
         }
+        return structure;
     }
+
+//    @PostMapping("/folder")
+//    public ResponseEntity<Map<String, Object>> getFolderStructure(@RequestParam String path) {
+//        try {
+//            File folder = new File(path);
+//            if (!folder.exists()) {
+//                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+//            }
+//            return ResponseEntity.ok(getStructure(path));
+//        } catch (Exception e) {
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+//        }
+//    }
 }
