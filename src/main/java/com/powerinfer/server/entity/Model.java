@@ -1,9 +1,6 @@
 package com.powerinfer.server.entity;
 
-import com.baomidou.mybatisplus.annotation.EnumValue;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import com.powerinfer.server.utils.enums;
 
 import java.util.Date;
@@ -15,6 +12,7 @@ public class Model {
     private String name;
     @EnumValue
     private enums.Visibility visibility;
+    @TableField("numDown")
     private int numDown; // number of download times
     private Date date; // last updated time
     private String uid;

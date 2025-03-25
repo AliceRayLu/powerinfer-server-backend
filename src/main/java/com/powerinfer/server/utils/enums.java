@@ -17,4 +17,11 @@ public class enums {
         TYPE_NOT_FOUND,
         MODEL_UNACCESSIBLE,
     }
+
+    public enum TaskState {
+        SUCCESS,
+        QUEUED,
+        RUNNING,
+        FAILED,
+    }
 }

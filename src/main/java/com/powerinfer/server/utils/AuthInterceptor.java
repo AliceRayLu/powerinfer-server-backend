@@ -52,7 +52,7 @@ public class AuthInterceptor implements HandlerInterceptor {
             return false;
         }
         // check signature
-        ProcessBuilder pb = new ProcessBuilder("python3", "server/src/main/resources/verify_signature.py", pubkey, timestamp_str, signature);
+        ProcessBuilder pb = new ProcessBuilder("python3", AddreessManager.getVerifyPythonPath(), pubkey, timestamp_str, signature);
         pb.redirectErrorStream(true);
         Process p = pb.start();
         BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));

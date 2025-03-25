@@ -6,6 +6,7 @@ import com.powerinfer.server.entity.User;
 import com.powerinfer.server.requestParams.GetModelRequest;
 import com.powerinfer.server.responseParams.GetModelResponse;
 import com.powerinfer.server.service.ModelService;
+import com.powerinfer.server.service.TaskService;
 import com.powerinfer.server.service.TypeService;
 import com.powerinfer.server.service.UserService;
 import com.powerinfer.server.utils.AddreessManager;
@@ -37,8 +38,23 @@ public class TypeController {
     private TypeService typeService;
     @Autowired
     private UserService userService;
+    @Autowired
+    private TaskService taskService;
 
-    private static final AddreessManager addreessManager = new AddreessManager();
+    @PostMapping("/client/add")
+    public void add(@RequestAttribute("uid") String uid, @RequestParam String name){
+        Model model = modelService.getModel(name.split(":")[0], uid);
+        Type type = typeService.getTypeByMidAndName(model.getMid(), name.split(":")[1]);
+        taskService.addTask(type.getTid(),type.getDir());
+    }
+
+    @PostMapping("/client/query")
+    public int query(@RequestAttribute("uid") String uid, @RequestParam String name){
+        Model model = modelService.getModel(name.split(":")[0], uid);
+        Type type = typeService.getTypeByMidAndName(model.getMid(), name.split(":")[1]);
+        return taskService.checkPos(type.getTid());
+    }
+
 
     @PostMapping(value = "/client/get", produces = "application/json")
     public GetModelResponse getModelType(@RequestAttribute("uid") String uid, @RequestBody GetModelRequest request){
@@ -88,7 +104,7 @@ public class TypeController {
 
 //    @PostMapping("/client/update")
     public void updateType(String mname, String uid, String tname){
-        String file_path = addreessManager.getUploadedPath(uid, mname+"-"+tname);
+        String file_path = AddreessManager.getUploadedPath(uid, mname+"-"+tname);
         System.out.println("updating with file path  = "+file_path);
         Model model = modelService.getModel(mname, uid);
         if(model == null){
@@ -121,7 +137,7 @@ public class TypeController {
                                              @RequestParam String tname,
                                              @RequestParam String fname) throws IOException {
         String name = mname + "-" + tname + "/" + fname;
-        String remotePath = addreessManager.getUploadedPath(uid, name);
+        String remotePath = AddreessManager.getUploadedPath(uid, name);
         File file = new File(remotePath);
         if (file.exists()) {
             long fileSize = file.length();
@@ -147,7 +163,7 @@ public class TypeController {
         long totalSize = Long.parseLong(range[1]);
 
         // create files
-        File file = new File(addreessManager.getUploadedPath(uid, name));
+        File file = new File(AddreessManager.getUploadedPath(uid, name));
         if (!file.exists()) {
             file.getParentFile().mkdirs();
             file.createNewFile();

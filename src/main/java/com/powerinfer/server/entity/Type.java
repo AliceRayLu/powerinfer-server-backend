@@ -130,4 +130,6 @@ public class Type {
     public String getSizeInfo(){return sizeInfo;}
     public void setDirInfo(String dirInfo){this.dirInfo = dirInfo;}
     public void setSizeInfo(String sizeInfo){this.sizeInfo = sizeInfo;}
+    public String getTid(){return tid;}
+    public String getDir(){return dir;}
 }
