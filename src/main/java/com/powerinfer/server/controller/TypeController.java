@@ -8,10 +8,10 @@ import com.powerinfer.server.responseParams.GetModelResponse;
 import com.powerinfer.server.service.ModelService;
 import com.powerinfer.server.service.TypeService;
 import com.powerinfer.server.service.UserService;
+import com.powerinfer.server.utils.AddreessManager;
 import com.powerinfer.server.utils.PartialResource;
 import com.powerinfer.server.utils.enums;
 import com.powerinfer.server.utils.enums.Visibility;
-import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -23,12 +23,9 @@ import org.springframework.web.bind.annotation.*;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @CrossOrigin
@@ -41,8 +38,7 @@ public class TypeController {
     @Autowired
     private UserService userService;
 
-    private static final String UPLOAD_DIR = "D://uploaded//ReluLLaMA-7B//";
-    private static final Logger logger = org.slf4j.LoggerFactory.getLogger(TypeController.class);
+    private static final AddreessManager addreessManager = new AddreessManager();
 
     @PostMapping(value = "/client/get", produces = "application/json")
     public GetModelResponse getModelType(@RequestAttribute("uid") String uid, @RequestBody GetModelRequest request){
@@ -90,19 +86,43 @@ public class TypeController {
 
     }
 
-    @PostMapping("/client/update")
-    public void updateType(String mname, String uid, String tname, String file_path){
+//    @PostMapping("/client/update")
+    public void updateType(String mname, String uid, String tname){
+        String file_path = addreessManager.getUploadedPath(uid, mname+"-"+tname);
+        System.out.println("updating with file path  = "+file_path);
         Model model = modelService.getModel(mname, uid);
         if(model == null){
             model = new Model(mname, uid, Visibility.PUBLIC);
             modelService.save(model);
+        }else{
+            System.out.println("model downloaded numbers: "+ model.getNumDown());
+            model.update();
+            modelService.updateById(model);
         }
-
+        model = modelService.getModel(mname, uid);
+        Type type = typeService.getTypeByMidAndName(model.getMid(), tname);
+        if(type == null){
+            type = new Type(
+                    tname,
+                    model.getMid(),
+                    file_path
+            );
+            typeService.save(type);
+        }else{
+            type.updateVersion();
+            type.updateDir(file_path);
+            typeService.updateById(type);
+        }
     }
 
-    @RequestMapping(path = "/upload", method = RequestMethod.HEAD)
-    public ResponseEntity<?> getUploadStatus(@RequestParam String name) throws IOException {
-        File file = new File( UPLOAD_DIR + name);
+    @RequestMapping(path = "/client/upload", method = RequestMethod.HEAD)
+    public ResponseEntity<?> getUploadStatus(@RequestAttribute("uid") String uid,
+                                             @RequestParam String mname,
+                                             @RequestParam String tname,
+                                             @RequestParam String fname) throws IOException {
+        String name = mname + "-" + tname + "/" + fname;
+        String remotePath = addreessManager.getUploadedPath(uid, name);
+        File file = new File(remotePath);
         if (file.exists()) {
             long fileSize = file.length();
             return ResponseEntity.ok()
@@ -112,24 +132,33 @@ public class TypeController {
         return ResponseEntity.notFound().build();
     }
 
-    @RequestMapping(path= "/upload", method = RequestMethod.PATCH)
+    @RequestMapping(path= "/client/upload", method = RequestMethod.PATCH)
     public ResponseEntity<?> uploadChunk(
+            @RequestAttribute("uid") String uid,
             @RequestHeader("Content-Range") String contentRange,
-            @RequestParam String name,
+            @RequestParam String mname,
+            @RequestParam String tname,
+            @RequestParam String fname,
             @RequestBody byte[] chunk) throws IOException {
-
+        String name = mname + "-" + tname + "/" + fname;
         String[] range = contentRange.split(" ")[1].split("/");
         String[] byteRange = range[0].split("-");
         long startByte = Long.parseLong(byteRange[0]);
         long totalSize = Long.parseLong(range[1]);
 
-        Files.createDirectories(Paths.get(UPLOAD_DIR));
+        // create files
+        File file = new File(addreessManager.getUploadedPath(uid, name));
+        if (!file.exists()) {
+            file.getParentFile().mkdirs();
+            file.createNewFile();
+        }
 
-        try (FileOutputStream fos = new FileOutputStream(UPLOAD_DIR + name, true)) {
+        try (FileOutputStream fos = new FileOutputStream(file, true)) {
             fos.write(chunk);
         }
 
-        if (startByte + chunk.length >= totalSize) {
+        if (startByte + chunk.length >= totalSize || startByte + chunk.length == totalSize - 1) {
+            updateType(mname, uid, tname);
             return ResponseEntity.ok().build();
         } else {
             return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT).build();
@@ -165,37 +194,4 @@ public class TypeController {
                     .body(resource);
         }
     }
-
-    private Map<String, Object> getStructure(String path) {
-        File folder = new File(path);
-        Map<String, Object> structure = new HashMap<>();
-        File[] files = folder.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                if (file.getName().startsWith(".")) continue; // ignore all config files
-                if (file.isDirectory()) {
-                    structure.put(file.getName(), getStructure(file.getPath()));
-                } else {
-                    structure.put(file.getName(), file.getAbsolutePath());
-                }
-            }
-
-        }else {
-            logger.warn("Model folder is empty or not exist. Searching folder: {}", path);
-        }
-        return structure;
-    }
-
-//    @PostMapping("/folder")
-//    public ResponseEntity<Map<String, Object>> getFolderStructure(@RequestParam String path) {
-//        try {
-//            File folder = new File(path);
-//            if (!folder.exists()) {
-//                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-//            }
-//            return ResponseEntity.ok(getStructure(path));
-//        } catch (Exception e) {
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-//        }
-//    }
 }

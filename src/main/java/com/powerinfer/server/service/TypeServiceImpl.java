@@ -22,6 +22,9 @@ public class TypeServiceImpl extends ServiceImpl<TypeMapper, Type> implements Ty
 
     @Override
     public Type getTypeByMidAndName(String mid, String name){
-        return typeMapper.selectOne(new QueryWrapper<Type>().eq("mid", mid).eq("name", name));
+        return typeMapper.selectOne(
+                new QueryWrapper<Type>()
+                        .eq("mid", mid)
+                        .eq("name", name));
     }
 }

@@ -15,7 +15,7 @@ public class Model {
     private String name;
     @EnumValue
     private enums.Visibility visibility;
-    private int num_down; // number of download times
+    private int numDown; // number of download times
     private Date date; // last updated time
     private String uid;
 
@@ -23,14 +23,14 @@ public class Model {
 
     public Model(){
         this.visibility = enums.Visibility.PUBLIC;
-        this.num_down = 0;
+        this.numDown = 0;
         this.date = new Date();
     }
     public Model(String name, String uid, enums.Visibility visibility){
         this.name = name;
         this.uid = uid;
         this.visibility = visibility;
-        this.num_down = 0;
+        this.numDown = 0;
         this.date = new Date();
     }
 
@@ -39,7 +39,13 @@ public class Model {
     }
     public String getMid() { return mid;}
     public String getName() { return name;}
-    public int getNum_down() { return num_down;}
+    public int getNumDown() { return numDown;}
     public Date getDate() { return date;}
     public String getUid() { return uid;}
+    public void update(){
+        this.date = new Date();
+    }
+    public void addDown(){
+        this.numDown++;
+    }
 }
