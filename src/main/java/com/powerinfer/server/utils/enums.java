@@ -24,4 +24,10 @@ public class enums {
         RUNNING,
         FAILED,
     }
+
+    public enum UploadAuthState {
+        ALLOWED,
+        DENIED,
+        NEEDS_CANCEL
+    }
 }

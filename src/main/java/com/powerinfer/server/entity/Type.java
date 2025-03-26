@@ -7,8 +7,6 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.io.File;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,27 +37,17 @@ public class Type {
 
 
     public Type() {}
-    public Type(String name, String mid, String dir) {
+    public Type(String name, String mid, String dir, String version) {
         this.name = name;
         this.mid = mid;
         this.dir = dir;
-        this.version = generateVersion();
+        this.version = version;
         this.dirInfo = String.valueOf(getJsonString(getStructure(dir)));
         this.sizeInfo = String.valueOf(getJsonString(getFileSize(dir)));
     }
-    public Type(String tid, String name, String version, String mid, long size, String dir, String dirInfo, String sizeInfo) {
-        this.tid = tid;
-        this.name = name;
-        this.version = version;
-        this.mid = mid;
-        this.size = size;
-        this.dir = dir;
-        this.dirInfo = dirInfo;
-        this.sizeInfo = sizeInfo;
-    }
 
-    public void updateVersion() {
-        this.version = generateVersion();
+    public void updateVersion(String version) {
+        this.version = version;
     }
 
     public void updateDir(String dir) {
@@ -68,26 +56,6 @@ public class Type {
         this.sizeInfo = String.valueOf(getJsonString(getFileSize(dir)));
     }
 
-
-    private String generateVersion(){
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-1");
-            String input = mid + tid + System.currentTimeMillis();
-            byte[] encodedHash = digest.digest(input.getBytes());
-            StringBuilder hexString = new StringBuilder(2 * encodedHash.length);
-            for (byte hash : encodedHash) {
-                String hex = Integer.toHexString(0xff & hash);
-                if (hex.length() == 1) {
-                    hexString.append('0');
-                }
-                hexString.append(hex);
-            }
-            return hexString.toString();
-        } catch (NoSuchAlgorithmException e) {
-            System.out.println("NoSuchAlgorithmException");
-        }
-        return null;
-    }
 
     private Map<String, Object> getStructure(String path) {
         File folder = new File(path);
@@ -132,4 +100,5 @@ public class Type {
     public void setSizeInfo(String sizeInfo){this.sizeInfo = sizeInfo;}
     public String getTid(){return tid;}
     public String getDir(){return dir;}
+    public String getMid(){return mid;}
 }
