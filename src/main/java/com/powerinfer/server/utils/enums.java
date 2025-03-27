@@ -23,6 +23,7 @@ public class enums {
         QUEUED,
         RUNNING,
         FAILED,
+        UPLOADING,
     }
 
     public enum UploadAuthState {

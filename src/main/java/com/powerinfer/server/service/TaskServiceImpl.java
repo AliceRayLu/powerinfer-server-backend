@@ -1,5 +1,6 @@
 package com.powerinfer.server.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.powerinfer.server.entity.Model;
 import com.powerinfer.server.entity.Task;
@@ -8,10 +9,13 @@ import com.powerinfer.server.mapper.TaskMapper;
 import com.powerinfer.server.responseParams.UploadModelResponse;
 import com.powerinfer.server.utils.AddreessManager;
 import com.powerinfer.server.utils.enums;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 
 import java.io.File;
 import java.util.LinkedList;
@@ -25,6 +29,23 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
     private TypeService typeService;
     @Autowired
     private ModelService modelService;
+
+    private static final Logger log = LoggerFactory.getLogger(TaskServiceImpl.class);
+
+    private static long averageTrainMinutes = 0;
+    private void adjustAverageTime(){
+
+    }
+
+    @Override
+    public long getWaitingMinutes(int pos) {
+        return 0;
+    }
+
+    @Override
+    public long getLeftMinutes(int progress) {
+        return 0;
+    }
 
     private static class TaskQueue {
         private static Queue<Task> taskQueue = new LinkedList<Task>();
@@ -63,6 +84,24 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
             return -1;
         }
 
+
+        public static String cancelTask(String tid) {
+            if (currentTask != null && currentTask.getTid().equals(tid)) {
+                currentTask.cleanUp();
+                String id = currentTask.getId();
+                currentTask = taskQueue.poll();
+                return id;
+            }
+            for (Task task : taskQueue) {
+                if (task.getTid().equals(tid)) {
+                    task.cleanUp();
+                    taskQueue.remove(task);
+                    return task.getId();
+                }
+            }
+            return null;
+        }
+
         public static boolean inQueue(String dir) {
             if (currentTask != null && currentTask.getDir().equals(dir)){
                 return true;
@@ -92,9 +131,10 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
     @Async
     public void executeTasks(){
         Task task = TaskQueue.get();
-        if (task != null) {
+        if (task != null && task.getState() == enums.TaskState.QUEUED) {
             task.setState(enums.TaskState.RUNNING);
             task.setStarted();
+            this.updateById(task);
             try {
                 int exitCode = task.execute();
                 // TODO: clean up and store into db
@@ -106,6 +146,7 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
             } finally {
                 task.setFinished();
                 TaskQueue.complete();
+                this.updateById(task);
             }
         }
     }
@@ -119,16 +160,31 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
     }
 
     @Override
+    public boolean cancelTask(String tid) {
+        String id = TaskQueue.cancelTask(tid);
+        if (id != null) {
+            String version = this.getById(id).getVersion();
+            this.removeById(id);
+            Type type = typeService.getById(tid);
+            if(type.getVersion().equals(version)){
+                typeService.removeById(tid);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    @Override
     public int checkPos(String tid) {
         return TaskQueue.getPos(tid);
     }
 
     public UploadModelResponse checkAuth(String uid, String dir_name) {
         // step 1: check if user train dir exists
-        File file = new File(AddreessManager.getTrainPythonPath() + uid);
+        File file = new File(AddreessManager.getTrainDir() + "/" + uid);
         // step 2: if not, check train dir size; if size is 10, check oldest not in queue cache
         if(!file.exists()){
-            File[] caches = new File(AddreessManager.getTrainPythonPath()).listFiles();
+            File[] caches = new File(AddreessManager.getTrainDir()).listFiles();
             File delete = null;
             long oldest = Long.MAX_VALUE;
             if(caches != null && caches.length >= 10) {
@@ -157,6 +213,7 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
             assert models != null && models.length >= 1;
             File cur = models[0];
             if(TaskQueue.inQueue(cur.getAbsolutePath())) {
+
                 return new UploadModelResponse(
                         "Need Cancel Training of " + cur.getName(),
                         enums.UploadAuthState.NEEDS_CANCEL
@@ -169,4 +226,22 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
         }
         return new UploadModelResponse("Allowed to upload.", enums.UploadAuthState.ALLOWED);
     }
+
+    public Flux<Task> findByTid(String tid) {
+        return Flux.defer(() -> {
+            QueryWrapper<Task> queryWrapper = new QueryWrapper<Task>()
+                    .eq("tid", tid).orderByDesc("created");
+            return Flux.fromIterable(taskMapper.selectList(queryWrapper));
+        })
+        .onErrorResume(e -> {
+            log.error("Error occurred while querying tasks by tid: {}", tid, e);
+            return Flux.error(new RuntimeException("Failed to query tasks"));
+        });
+    }
+
+    @Override
+    public Task findLatestTaskByTid(String tid) {
+        return taskMapper.selectList(new QueryWrapper<Task>().eq("tid", tid).orderByDesc("created")).get(0);
+    }
+
 }

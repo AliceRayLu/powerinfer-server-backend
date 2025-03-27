@@ -1,13 +1,12 @@
 package com.powerinfer.server.entity;
 
-import com.baomidou.mybatisplus.annotation.EnumValue;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.powerinfer.server.utils.AddreessManager;
 import com.powerinfer.server.utils.enums;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.time.LocalDateTime;
@@ -19,16 +18,33 @@ public class Task {
     private String tid; // type id
     private String dir; // the absolute path
     @EnumValue
+    @JsonProperty("state")
     private enums.TaskState state;
+    @JsonProperty("version")
     private String version;
+    @JsonProperty("created")
     private LocalDateTime created;
+    @JsonProperty("started")
     private LocalDateTime started;
+    @JsonProperty("finished")
     private LocalDateTime finished;
+    @TableField(exist = false)
+    @JsonProperty("queue")
+    private int queue;
+    @TableField(exist = false)
+    @JsonProperty("progress")
+    private int progress;
+    @TableField(exist = false)
+    @JsonProperty("waitingTime")
+    private long waitingTime; // minutes
+    @TableField(exist = false)
+    @JsonProperty("runningTime")
+    private long runningTime; // minutes
 
     public Task(String tid, String dir, String version) {
         this.tid = tid;
         this.dir = dir;
-        this.state = enums.TaskState.QUEUED;
+        this.state = enums.TaskState.UPLOADING;
         this.version = version;
     }
 
@@ -37,10 +53,15 @@ public class Task {
     public String getTid() { return tid; }
     public String getDir() { return dir; }
     public String getVersion() { return version; }
+    public String getId() { return id; }
 
     public void setCreated() { this.created = LocalDateTime.now(); }
     public void setStarted() { this.started = LocalDateTime.now(); }
     public void setFinished() { this.finished = LocalDateTime.now(); }
+    public void setQueue(int queue) { this.queue = queue; }
+    public void setProgress(int progress) { this.progress = progress; }
+    public void setWaitingTime(long waitingTime) { this.waitingTime = waitingTime; }
+    public void setRunningTime(long runningTime) { this.runningTime = runningTime; }
 
     public int execute() throws IOException, InterruptedException {
         System.out.println("==============> Starting to execute task " + tid);
@@ -57,5 +78,13 @@ public class Task {
             }
         }
         return p.waitFor();
+    }
+
+
+    public void cleanUp() {
+        // TODO: clean up dirs
+        File folder = new File(dir);
+        AddreessManager.deleteDir(folder);
+        folder.getParentFile().delete();
     }
 }
