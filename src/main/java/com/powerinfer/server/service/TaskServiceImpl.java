@@ -18,6 +18,8 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.LinkedList;
 import java.util.ListIterator;
 
@@ -54,7 +56,7 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
         private TaskQueue() {}
 
         public static synchronized void add(Task task) {
-            log.info("Adding task:  {}", task.getTid());
+            log.info("Adding task: {}", task.getTid());
             taskQueue.add(task);
         }
 
@@ -128,6 +130,19 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
             }
             return false;
         }
+
+        public static String manageQueue() {
+            ListIterator<Task> iterator = taskQueue.listIterator();
+            while (iterator.hasNext()) {
+                Task task = iterator.next();
+                if (task.getState() == enums.TaskState.UPLOADING
+                        && ChronoUnit.DAYS.between(task.getCreated(), LocalDateTime.now()) >= 1) {
+                    iterator.remove();
+                    return task.getId();
+                }
+            }
+            return null;
+        }
     }
 
     private void updateType(Task task){
@@ -163,6 +178,19 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
                 task.setFinished();
                 TaskQueue.complete();
                 this.updateById(task);
+            }
+        }
+        String id = TaskQueue.manageQueue();
+        if(id != null){
+            Task old = this.getById(id);
+            if (old != null) {
+                old.cleanUp(); // TODO:
+                this.removeById(id);
+                Type type = typeService.getById(old.getTid());
+                assert type != null;
+                if(type.getVersion().equals(old.getVersion())){
+                    typeService.removeById(type);
+                }
             }
         }
     }

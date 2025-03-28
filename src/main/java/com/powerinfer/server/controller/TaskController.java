@@ -165,7 +165,9 @@ public class TaskController {
     @PostMapping("/client/cancel")
     public ResponseEntity<Boolean> cancelTask(@RequestAttribute("uid") String uid, @RequestParam String mname, @RequestParam String tname) {
         Task task = getTask(uid, mname, tname);
-        if (task == null) { return ResponseEntity.notFound().build(); }
+        if (task == null || task.getState() == enums.TaskState.FAILED || task.getState() == enums.TaskState.SUCCESS) {
+            return ResponseEntity.notFound().build();
+        }
         return ResponseEntity.ok(taskService.cancelTask(task.getTid()));
     }
 }

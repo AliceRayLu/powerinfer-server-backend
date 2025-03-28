@@ -54,6 +54,7 @@ public class Task {
     public String getDir() { return dir; }
     public String getVersion() { return version; }
     public String getId() { return id; }
+    public LocalDateTime getCreated() { return created; }
 
     public void setCreated() { this.created = LocalDateTime.now(); }
     public void setStarted() { this.started = LocalDateTime.now(); }
