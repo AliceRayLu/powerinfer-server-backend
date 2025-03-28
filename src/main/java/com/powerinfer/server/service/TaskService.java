@@ -14,4 +14,5 @@ public interface TaskService extends IService<Task> {
     long getWaitingMinutes(int pos);
     long getLeftMinutes(int progress);
     boolean cancelTask(String tid);
+    void updateTask(Task task, boolean isRemove);
 }

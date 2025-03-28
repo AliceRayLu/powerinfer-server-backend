@@ -19,7 +19,7 @@ import reactor.core.publisher.Flux;
 
 import java.io.File;
 import java.util.LinkedList;
-import java.util.Queue;
+import java.util.ListIterator;
 
 @Service
 public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements TaskService {
@@ -48,26 +48,41 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
     }
 
     private static class TaskQueue {
-        private static Queue<Task> taskQueue = new LinkedList<Task>();
+        private static LinkedList<Task> taskQueue = new LinkedList<>();
         private static Task currentTask = null;
 
         private TaskQueue() {}
 
         public static synchronized void add(Task task) {
-            System.out.println("=============> Adding task: " + task.getTid());
+            log.info("Adding task:  {}", task.getTid());
             taskQueue.add(task);
         }
 
+        public static synchronized void updateTask(Task task, boolean isRemove) {
+            ListIterator<Task> iterator = taskQueue.listIterator();
+            while (iterator.hasNext()) {
+                Task old = iterator.next();
+                if (old.getTid().equals(task.getTid())) {
+                    if (isRemove) {
+                        iterator.remove();
+                    }else iterator.set(task);
+                    break;
+                }
+            }
+        }
+
         public static synchronized Task get() {
+            log.info("Getting task...");
             if (currentTask == null && !taskQueue.isEmpty()) {
-                currentTask = taskQueue.poll();
+                Task task = taskQueue.peek();
+                if (task.getState() == enums.TaskState.QUEUED) currentTask = taskQueue.poll();
             }
             return currentTask;
         }
 
         public static void complete() {
+            log.info("Task {} completed", currentTask.getId());
             currentTask = null;
-            System.out.println("=============> Task completed");
         }
 
         public static int getPos(String tid) {
@@ -131,10 +146,11 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
     @Async
     public void executeTasks(){
         Task task = TaskQueue.get();
-        if (task != null && task.getState() == enums.TaskState.QUEUED) {
+        if (task != null) {
             task.setState(enums.TaskState.RUNNING);
             task.setStarted();
             this.updateById(task);
+            log.info("Task started for tid {} started.", task.getTid());
             try {
                 int exitCode = task.execute();
                 // TODO: clean up and store into db
@@ -142,7 +158,7 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
                 updateType(task);
             } catch (Exception e) {
                 task.setState(enums.TaskState.FAILED);
-                System.out.println("Task failed " + e.getMessage());
+                log.error("Task id {} failed: {}", task.getId(), e.getMessage());
             } finally {
                 task.setFinished();
                 TaskQueue.complete();
@@ -175,13 +191,19 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
     }
 
     @Override
+    public void updateTask(Task task, boolean isRemove) {
+        TaskQueue.updateTask(task, isRemove);
+    }
+
+    @Override
     public int checkPos(String tid) {
         return TaskQueue.getPos(tid);
     }
 
+    @Override
     public UploadModelResponse checkAuth(String uid, String dir_name) {
         // step 1: check if user train dir exists
-        File file = new File(AddreessManager.getTrainDir() + "/" + uid);
+        File file = new File(AddreessManager.getTrainDir() + AddreessManager.getSeperator() + uid);
         // step 2: if not, check train dir size; if size is 10, check oldest not in queue cache
         if(!file.exists()){
             File[] caches = new File(AddreessManager.getTrainDir()).listFiles();
@@ -212,8 +234,8 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
             File[] models = file.listFiles();
             assert models != null && models.length >= 1;
             File cur = models[0];
-            if(TaskQueue.inQueue(cur.getAbsolutePath())) {
-
+            boolean res = TaskQueue.inQueue(cur.getAbsolutePath());
+            if(res) {
                 return new UploadModelResponse(
                         "Need Cancel Training of " + cur.getName(),
                         enums.UploadAuthState.NEEDS_CANCEL
@@ -227,6 +249,7 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
         return new UploadModelResponse("Allowed to upload.", enums.UploadAuthState.ALLOWED);
     }
 
+    @Override
     public Flux<Task> findByTid(String tid) {
         return Flux.defer(() -> {
             QueryWrapper<Task> queryWrapper = new QueryWrapper<Task>()

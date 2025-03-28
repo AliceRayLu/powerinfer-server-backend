@@ -38,7 +38,7 @@ public class JsonOperator {
     }
 
     public static void writeMd5(String dir_name, String file_name, String md5) throws IOException {
-        File file = new File(dir_name + "/.md5");
+        File file = new File(dir_name + AddreessManager.getSeperator()+".md5");
         if (!file.exists()) {
             file.getParentFile().mkdirs();
             file.createNewFile();
@@ -59,7 +59,7 @@ public class JsonOperator {
     }
 
     public static String getMd5(String dir_name, String file_name) throws IOException {
-        File file = new File(dir_name + "/.md5");
+        File file = new File(dir_name + AddreessManager.getSeperator()+ ".md5");
         if (!file.exists()) {return null;}
         List<String> content = Files.readAllLines(file.toPath());
         for (String line : content) {

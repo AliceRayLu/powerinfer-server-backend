@@ -92,22 +92,30 @@ public class TaskController {
     }
 
     @PostMapping("/client/done")
-    public void startTask(@RequestAttribute("uid") String uid,@RequestParam String mname,@RequestParam String tname) {
+    public void startTask(@RequestAttribute("uid") String uid,
+                          @RequestParam String mname,
+                          @RequestParam String tname,
+                          @RequestParam boolean success) {
         Task task = getTask(uid, mname, tname);
         assert task != null;
-        task.setState(enums.TaskState.QUEUED);
-        taskService.updateById(task);
+        if (success) {
+            task.setState(enums.TaskState.QUEUED);
+            taskService.updateById(task);
+        }else {
+            taskService.removeById(task);
+        }
+        taskService.updateTask(task, !success);
     }
 
     @RequestMapping(path = "/client/upload", method = RequestMethod.HEAD)
     public ResponseEntity<?> getUploadStatus(@RequestAttribute("uid") String uid,
                                              @RequestBody UploadModelRequest request) throws IOException {
         String dir_name = request.getMname() + "-" + request.getTname();
-        String name = dir_name + "/" + request.getFname();
+        String name = dir_name + AddreessManager.getSeperator() + request.getFname();
         String remotePath = AddreessManager.getUploadedPath(uid, name);
         File file = new File(remotePath);
         if (file.exists()) {
-            String old = JsonOperator.getMd5(dir_name, request.getFname());
+            String old = JsonOperator.getMd5(AddreessManager.getUploadedPath(uid, dir_name), request.getFname());
             assert old != null;
             if (!old.equals(request.getMd5())) {
                 file.delete();
@@ -118,7 +126,7 @@ public class TaskController {
                         .build();
             }
         }
-        JsonOperator.writeMd5(dir_name, request.getFname(), request.getMd5());
+        JsonOperator.writeMd5(AddreessManager.getUploadedPath(uid, dir_name), request.getFname(), request.getMd5());
         return ResponseEntity.notFound().build();
     }
 
@@ -130,7 +138,7 @@ public class TaskController {
             @RequestParam String tname,
             @RequestParam String fname,
             @RequestBody byte[] chunk) throws IOException {
-        String name = mname + "-" + tname + "/" + fname;
+        String name = mname + "-" + tname + AddreessManager.getSeperator() + fname;
         String[] range = contentRange.split(" ")[1].split("/");
         String[] byteRange = range[0].split("-");
         long startByte = Long.parseLong(byteRange[0]);
