@@ -102,4 +102,5 @@ public class Type {
     public String getDir(){return dir;}
     public String getMid(){return mid;}
     public String getVersion(){return version;}
+    public String getName(){return name;}
 }

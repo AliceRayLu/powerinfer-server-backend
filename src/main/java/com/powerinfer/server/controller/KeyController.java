@@ -19,14 +19,14 @@ public class KeyController {
         Key temp = keyService.getKeyByContent(key.getContent());
         if(temp != null){return false;}
         System.out.println(key.getType());
+        key.setDate();
         keyService.save(key);
-        // TODO: add into server file (if use ssh to transmit file)
         return true;
     }
 
     @PostMapping("/delete")
-    public void deleteKey(@RequestBody Key key){
-        keyService.removeById(key.getKid());
+    public void deleteKey(@RequestParam String kid){
+        keyService.removeById(kid);
     }
 
     @PostMapping("/get/usr/ssh")

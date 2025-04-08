@@ -23,10 +23,11 @@ public class UserController {
     public String login(@RequestBody User user){
         User usr = userService.getUserByEmail(user.getEmail());
         if(usr == null){
-            return "";
+            return "email not registered";
         }
         if(usr.getPasswd().equals(user.getPasswd())){
-            return user.getUid();
+            System.out.println("login success "+usr.getUid());
+            return usr.getUid();
         }
         return "wrong password";
     }
@@ -44,6 +45,7 @@ public class UserController {
         if(temp != null) {
             response.setSuccess();
             response.setEmail();
+            return response;
         }
         temp = userService.getUserByUsername(user.getName());
         if(temp != null) {
@@ -55,7 +57,12 @@ public class UserController {
     }
 
     @PostMapping("/getInfo")
-    public User getInfo(@RequestParam String uid){
+    public User getInfo(@RequestParam String uid, @RequestParam String uname){
+        if (uname != null && !uname.isEmpty()) {
+            User user = userService.getUserByUsername(uname);
+            user.setPasswd(null);
+            return user;
+        }
         User user = userService.getById(uid);
         user.setPasswd(null);
         return user;

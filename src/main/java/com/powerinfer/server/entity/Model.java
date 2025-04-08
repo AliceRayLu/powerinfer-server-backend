@@ -16,6 +16,7 @@ public class Model {
     private int numDown; // number of download times
     private Date date; // last updated time
     private String uid;
+    private String types; // use , to separate different types
 
     private String md; // markdown files path
 
@@ -40,10 +41,24 @@ public class Model {
     public int getNumDown() { return numDown;}
     public Date getDate() { return date;}
     public String getUid() { return uid;}
-    public void update(){
+    public void update(String size){
         this.date = new Date();
+        String[] sizes = types.split(",");
+        boolean has = false;
+        for(String s: sizes){
+            if(s.equals(size)){
+                has = true;
+                break;
+            }
+        }
+        if(!has){
+            types = types + "," + size;
+        }
     }
     public void addDown(){
         this.numDown++;
+    }
+    public String getTypes() {
+        return types;
     }
 }

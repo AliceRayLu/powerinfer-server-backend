@@ -42,6 +42,7 @@ public class TaskController {
 
     @PostMapping(value = "/query", produces = MediaType.APPLICATION_NDJSON_VALUE)
     public Flux<Task> query(@RequestAttribute("uid") String uid, @RequestParam String mname, @RequestParam String tname){
+        // all the training record of a single model type
         Model model = modelService.getModel(mname, uid);
         assert model != null;
         Type type = typeService.getTypeByMidAndName(model.getMid(), tname);

@@ -74,7 +74,7 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
         }
 
         public static synchronized Task get() {
-            log.info("Getting task...");
+//            log.info("Getting task...");
             if (currentTask == null && !taskQueue.isEmpty()) {
                 Task task = taskQueue.peek();
                 if (task.getState() == enums.TaskState.QUEUED) currentTask = taskQueue.poll();
@@ -153,7 +153,7 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
         typeService.updateById(type);
         Model model =  modelService.getById(type.getMid());
         assert model != null;
-        model.update();
+        model.update(type.getName());
         modelService.updateById(model);
     }
 
