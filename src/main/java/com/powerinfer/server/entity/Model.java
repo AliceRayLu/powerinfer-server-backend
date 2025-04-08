@@ -17,13 +17,14 @@ public class Model {
     private Date date; // last updated time
     private String uid;
     private String types; // use , to separate different types
-
-    private String md; // markdown files path
+    @TableField(exist = false)
+    private String uname;
 
     public Model(){
         this.visibility = enums.Visibility.PUBLIC;
         this.numDown = 0;
         this.date = new Date();
+        this.types = "";
     }
     public Model(String name, String uid, enums.Visibility visibility){
         this.name = name;
@@ -31,10 +32,14 @@ public class Model {
         this.visibility = visibility;
         this.numDown = 0;
         this.date = new Date();
+        this.types = "";
     }
 
     public enums.Visibility getVisibility() {
         return visibility;
+    }
+    public void setVisibility(enums.Visibility visibility) {
+        this.visibility = visibility;
     }
     public String getMid() { return mid;}
     public String getName() { return name;}
@@ -58,7 +63,42 @@ public class Model {
     public void addDown(){
         this.numDown++;
     }
+    public void setTypes(String types){ this.types = types; }
     public String getTypes() {
         return types;
+    }
+
+    public void removeType(String type){
+        if(types == null || types.isEmpty()) return;
+        String[] all = types.split(",");
+        StringBuilder sb = new StringBuilder();
+        for(String s : all){
+            if(!s.equals(type)){
+                if(!sb.isEmpty()) sb.append(",");
+                sb.append(s);
+            }
+        }
+        types = sb.toString();
+    }
+    public void addType(String type){
+        if(types == null || types.isEmpty()){
+            types = type;
+            return;
+        }
+        String[] all = types.split(",");
+        boolean contains = false;
+        for(String s : all){
+            if(s.equals(type)){
+                contains = true;
+                break;
+            }
+        }
+        if(!contains){
+            types = types + "," + type;
+        }
+    }
+
+    public void setUname(String uname) {
+        this.uname = uname;
     }
 }

@@ -16,8 +16,13 @@ public class TypeServiceImpl extends ServiceImpl<TypeMapper, Type> implements Ty
     private TypeMapper typeMapper;
 
     @Override
-    public List<Type> getAllTypes(String mid){
-        return typeMapper.selectList(new QueryWrapper<Type>().eq("mid", mid).select("tid", "name"));
+    public List<String> getAllTypeIds(String mid){
+        return typeMapper.selectObjs(new QueryWrapper<Type>()
+                .eq("mid", mid)
+                .select("tid"))
+                .stream()
+                .map(obj -> (String) obj)
+                .toList();
     }
 
     @Override
@@ -26,5 +31,10 @@ public class TypeServiceImpl extends ServiceImpl<TypeMapper, Type> implements Ty
                 new QueryWrapper<Type>()
                         .eq("mid", mid)
                         .eq("name", name));
+    }
+
+    @Override
+    public void removeTypesByMid(String mid) {
+        typeMapper.delete(new QueryWrapper<Type>().eq("mid", mid));
     }
 }

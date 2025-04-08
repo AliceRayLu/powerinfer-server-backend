@@ -1,8 +1,11 @@
 package com.powerinfer.server.controller;
 
 import com.powerinfer.server.entity.Model;
+import com.powerinfer.server.entity.Type;
 import com.powerinfer.server.entity.User;
 import com.powerinfer.server.service.ModelService;
+import com.powerinfer.server.service.TaskService;
+import com.powerinfer.server.service.TypeService;
 import com.powerinfer.server.service.UserService;
 import com.powerinfer.server.utils.enums;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @CrossOrigin
@@ -20,6 +24,10 @@ public class ModelController {
     private ModelService modelService;
     @Autowired
     private UserService userService;
+    @Autowired
+    private TaskService taskService;
+    @Autowired
+    private TypeService typeService;
 
     @PostMapping("/pub/get")
     public ArrayList<Model> getPub(String search){
@@ -61,5 +69,26 @@ public class ModelController {
         }
         modelService.save(model);
         return true;
+    }
+
+    @PostMapping("/remove")
+    public void removeModel(@RequestParam String mid){
+        List<String> tids = typeService.getAllTypeIds(mid);
+        for (String tid : tids) {
+            taskService.removeTasksByTid(tid);
+        }
+        typeService.removeTypesByMid(mid);
+        modelService.removeById(mid);
+    }
+
+    @PostMapping("/switch")
+    public void switchVisibility(@RequestParam String mid){
+        Model model = modelService.getById(mid);
+        if(model.getVisibility() == enums.Visibility.PUBLIC) {
+           model.setVisibility(enums.Visibility.PRIVATE);
+        }else{
+            model.setVisibility(enums.Visibility.PUBLIC);
+        }
+        modelService.updateById(model);
     }
 }

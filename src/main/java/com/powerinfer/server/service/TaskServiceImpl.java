@@ -295,4 +295,9 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
         return taskMapper.selectList(new QueryWrapper<Task>().eq("tid", tid).orderByDesc("created")).get(0);
     }
 
+    @Override
+    public void removeTasksByTid(String tid) {
+        cancelTask(tid);
+        taskMapper.delete(new QueryWrapper<Task>().eq("tid", tid));
+    }
 }

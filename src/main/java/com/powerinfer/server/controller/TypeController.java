@@ -5,10 +5,7 @@ import com.powerinfer.server.entity.Type;
 import com.powerinfer.server.entity.User;
 import com.powerinfer.server.requestParams.GetModelRequest;
 import com.powerinfer.server.responseParams.GetModelResponse;
-import com.powerinfer.server.service.ModelService;
-import com.powerinfer.server.service.TaskServiceImpl;
-import com.powerinfer.server.service.TypeService;
-import com.powerinfer.server.service.UserService;
+import com.powerinfer.server.service.*;
 import com.powerinfer.server.utils.AddreessManager;
 import com.powerinfer.server.utils.PartialResource;
 import com.powerinfer.server.utils.enums;
@@ -36,10 +33,10 @@ public class TypeController {
     private TypeService typeService;
     @Autowired
     private UserService userService;
+    @Autowired
+    private TaskService taskService;
 
-
-    @PostMapping(value = "/client/get", produces = "application/json")
-    public GetModelResponse getModelType(@RequestAttribute("uid") String uid, @RequestBody GetModelRequest request){
+    private GetModelResponse getModelRequest(String uid, GetModelRequest request) {
         String uname = request.getUname();
         User user = uname==null ? userService.getById(uid) : userService.getUserByUsername(uname);
         GetModelResponse response = new GetModelResponse(enums.GetModelState.SUCCESS);
@@ -69,19 +66,44 @@ public class TypeController {
         return response;
     }
 
-    @PostMapping("/get")
-    public List<Type> getTypeList(@RequestParam String mid){
-        return typeService.getAllTypes(mid);
+    @PostMapping(value = "/client/get", produces = "application/json")
+    public GetModelResponse getModelType(@RequestAttribute("uid") String uid, @RequestBody GetModelRequest request){
+        return getModelRequest(uid, request);
     }
 
-    @PostMapping("/get/detail")
-    public Type getTypeDetail(String tid){
-        return typeService.getById(tid);
+    @PostMapping("/single/get")
+    public GetModelResponse getModelTypeWeb(@RequestParam String uid, @RequestBody GetModelRequest request){
+        return getModelRequest(uid, request);
     }
 
-    @PostMapping({"/remove", "/client/remove"})
-    public void remove(){
+    @PostMapping("/get/file")
+    public ResponseEntity<String> getTypeList(@RequestParam String path) throws IOException {
+        Path filePath = Paths.get(path);
+        Resource resource = new UrlResource(filePath.toUri());
 
+        if (!resource.exists()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+
+        long fileSize = resource.contentLength();
+        if (fileSize > 50 * 1024 * 1024) {  // file over 50MB will not be sent
+            return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                    .body(null);
+        }
+
+        String content = new String(resource.getInputStream().readAllBytes());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, "text/plain")
+                .body(content);
+    }
+
+    @PostMapping({"/remove"})
+    public void remove(@RequestBody Type type) {
+        taskService.removeTasksByTid(type.getTid());
+        Model model = modelService.getById(type.getMid());
+        model.removeType(type.getName());
+        modelService.updateById(model);
+        typeService.removeById(type.getTid());
     }
 
     @PostMapping("/download")
