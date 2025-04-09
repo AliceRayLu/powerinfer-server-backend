@@ -1,19 +1,20 @@
 package com.powerinfer.server.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.powerinfer.server.entity.Model;
-import com.powerinfer.server.entity.Type;
 import com.powerinfer.server.entity.User;
+import com.powerinfer.server.requestParams.PagedRequest;
 import com.powerinfer.server.service.ModelService;
 import com.powerinfer.server.service.TaskService;
 import com.powerinfer.server.service.TypeService;
 import com.powerinfer.server.service.UserService;
 import com.powerinfer.server.utils.enums;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -29,22 +30,36 @@ public class ModelController {
     @Autowired
     private TypeService typeService;
 
-    @PostMapping("/pub/get")
-    public ArrayList<Model> getPub(String search){
-        // get all the public model ranks
-        return null;
+    @PostMapping(value = "/pub/get",produces = "application/json")
+    public ResponseEntity<Page<Model>> getPub(@RequestBody PagedRequest pageConfig) {
+        Pageable pageable = PageRequest.of(pageConfig.getPage(), pageConfig.getSize());
+        Page<Model> models = modelService.getAllPublicModels(pageConfig.getSearch(), pageable, pageConfig.getSortBy());
+        for(Model model: models.getRecords()) {
+            User user = userService.getById(model.getUid());
+            if(user != null) {
+                model.setUname(user.getName());
+            }
+        }
+        return new ResponseEntity<>(models, HttpStatus.OK);
     }
 
-    @PostMapping("/usr/get")
-    public ArrayList<Model> getUser(String uid, String search){
-        // get all the pub models belong to one user
-        return null;
+    @PostMapping(value = "/usr/get",produces = "application/json")
+    public ResponseEntity<Page<Model>> getUser(@RequestBody PagedRequest pageConfig) {
+        User user = userService.getUserByUsername(pageConfig.getUser());
+        Pageable pageable = PageRequest.of(pageConfig.getPage(), pageConfig.getSize());
+        Page<Model> models = modelService.getUserModels(
+                user.getUid(), pageConfig.getSearch(), pageable, true, pageConfig.getSortBy()
+        );
+        return new ResponseEntity<>(models, HttpStatus.OK);
     }
 
-    @PostMapping({"/usr/get/own"})
-    public ArrayList<Model> getOwn(String uid, String search){
-        // get all the models belongs to one user
-        return null;
+    @PostMapping(value ="/usr/get/own", produces = "application/json")
+    public ResponseEntity<Page<Model>> getOwn(@RequestParam PagedRequest pageConfig) {
+        Pageable pageable = PageRequest.of(pageConfig.getPage(), pageConfig.getSize());
+        Page<Model> models = modelService.getUserModels(
+                pageConfig.getUser(), pageConfig.getSearch(), pageable, false, pageConfig.getSortBy()
+        );
+        return new ResponseEntity<>(models, HttpStatus.OK);
     }
 
     @PostMapping("/detail")

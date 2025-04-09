@@ -1,6 +1,7 @@
 package com.powerinfer.server.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.powerinfer.server.utils.enums;
 
 import java.util.Date;
@@ -18,6 +19,7 @@ public class Model {
     private String uid;
     private String types; // use , to separate different types
     @TableField(exist = false)
+    @JsonProperty("uname")
     private String uname;
 
     public Model(){

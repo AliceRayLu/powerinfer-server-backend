@@ -68,7 +68,12 @@ public class TypeController {
 
     @PostMapping(value = "/client/get", produces = "application/json")
     public GetModelResponse getModelType(@RequestAttribute("uid") String uid, @RequestBody GetModelRequest request){
-        return getModelRequest(uid, request);
+        GetModelResponse response = getModelRequest(uid, request);
+        Type type = response.getModelType();
+        Model model = modelService.getById(type.getMid());
+        model.addDown();
+        modelService.updateById(model);
+        return response;
     }
 
     @PostMapping("/single/get")
