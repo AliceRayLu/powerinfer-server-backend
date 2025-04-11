@@ -54,7 +54,7 @@ public class ModelController {
     }
 
     @PostMapping(value ="/usr/get/own", produces = "application/json")
-    public ResponseEntity<Page<Model>> getOwn(@RequestParam PagedRequest pageConfig) {
+    public ResponseEntity<Page<Model>> getOwn(@RequestBody PagedRequest pageConfig) {
         Pageable pageable = PageRequest.of(pageConfig.getPage(), pageConfig.getSize());
         Page<Model> models = modelService.getUserModels(
                 pageConfig.getUser(), pageConfig.getSearch(), pageable, false, pageConfig.getSortBy()

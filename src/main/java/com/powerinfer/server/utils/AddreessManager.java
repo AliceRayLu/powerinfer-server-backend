@@ -2,7 +2,6 @@ package com.powerinfer.server.utils;
 
 
 import java.io.File;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class AddreessManager {
@@ -21,6 +20,10 @@ public class AddreessManager {
     public static String getUploadedPath(String uid, String name) {
         return normalize(train_folder + seperator + uid + seperator + name);
     }
+    public static String getStorePath(String uid, String name) {
+        return normalize(store_folder + seperator + uid + seperator + name);
+    }
+
     public static String getTrainPythonPath() { return normalize(train_python_script); }
     public static String getVerifyPythonPath() { return normalize(verify_python_script); }
 
