@@ -22,7 +22,7 @@ public class TypeServiceImpl extends ServiceImpl<TypeMapper, Type> implements Ty
                 .select("tid"))
                 .stream()
                 .map(obj -> (String) obj)
-                .toList();
+                .collect(java.util.stream.Collectors.toList());  // 修改这里
     }
 
     @Override

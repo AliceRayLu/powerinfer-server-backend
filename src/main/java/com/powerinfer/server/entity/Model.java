@@ -76,7 +76,7 @@ public class Model {
         StringBuilder sb = new StringBuilder();
         for(String s : all){
             if(!s.equals(type)){
-                if(!sb.isEmpty()) sb.append(",");
+                if(sb.length() > 0) sb.append(",");
                 sb.append(s);
             }
         }
