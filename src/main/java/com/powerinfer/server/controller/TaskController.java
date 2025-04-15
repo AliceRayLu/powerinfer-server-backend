@@ -1,5 +1,6 @@
 package com.powerinfer.server.controller;
 
+import com.powerinfer.server.entity.Key;
 import com.powerinfer.server.entity.Model;
 import com.powerinfer.server.entity.Task;
 import com.powerinfer.server.entity.Type;
@@ -11,14 +12,12 @@ import com.powerinfer.server.utils.JsonOperator;
 import com.powerinfer.server.utils.enums;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @CrossOrigin
@@ -30,6 +29,8 @@ public class TaskController {
     private TypeService typeService;
     @Autowired
     private TaskService taskService;
+    @Autowired
+    private KeyService keyService;
 
     private Task getTask(String uid, String mname, String tname) {
         Model model = modelService.getModel(mname, uid);
@@ -40,15 +41,15 @@ public class TaskController {
     }
 
 
-    @PostMapping(value = "/query", produces = MediaType.APPLICATION_NDJSON_VALUE)
-    public Flux<Task> query(@RequestAttribute("uid") String uid, @RequestParam String mname, @RequestParam String tname){
-        // all the training record of a single model type
-        Model model = modelService.getModel(mname, uid);
-        assert model != null;
-        Type type = typeService.getTypeByMidAndName(model.getMid(), tname);
-        assert type != null;
-        return taskService.findByTid(type.getTid());
-    }
+//    @PostMapping(value = "/query", produces = MediaType.APPLICATION_NDJSON_VALUE)
+//    public Flux<Task> query(@RequestAttribute("uid") String uid, @RequestParam String mname, @RequestParam String tname){
+//        // all the training record of a single model type
+//        Model model = modelService.getModel(mname, uid);
+//        assert model != null;
+//        Type type = typeService.getTypeByMidAndName(model.getMid(), tname);
+//        assert type != null;
+//        return taskService.findByTid(type.getTid());
+//    }
 
     @PostMapping("/client/detail")
     public ResponseEntity<Task> queryDetail(@RequestAttribute("uid") String uid,
@@ -70,13 +71,18 @@ public class TaskController {
     }
 
     @PostMapping("/client/add")
-    public ResponseEntity<String> initialTask(@RequestParam String mname, @RequestAttribute("uid") String uid,@RequestParam String tname) {
+    public ResponseEntity<String> initialTask(@RequestParam String mname,
+                                              @RequestAttribute("uid") String uid,
+                                              @RequestParam String tname,
+                                              @RequestParam boolean need_train,
+                                              @RequestParam(required = false) String hf_path) {
         String dir_name = mname + "-" + tname;
         UploadModelResponse response = taskService.checkAuth(uid, dir_name);
         if(response.getAuthState() != enums.UploadAuthState.ALLOWED){
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response.getMsg());
         }
-        String dir = AddreessManager.getUploadedPath(uid, dir_name);
+        String dir = AddreessManager.getUploadedPath(uid, dir_name, need_train);
+        String output_dir = AddreessManager.getUploadedPath(uid, dir_name, false);
         Model model = modelService.getModel(mname, uid);
         if (model == null) {
             modelService.save(new Model(mname, uid, enums.Visibility.PUBLIC));
@@ -88,7 +94,59 @@ public class TaskController {
             typeService.save(new Type(tname, model.getMid(), dir, version));
         }
         type = typeService.getTypeByMidAndName(model.getMid(), tname);
-        taskService.addTask(type.getTid(), dir, version);
+        Task t = taskService.addTask(type.getTid(), dir, version, need_train, output_dir);
+        if (hf_path != null && !hf_path.isEmpty()) {
+            List<Key> tokens = keyService.getHfListOfUser(uid);
+            if(tokens == null || tokens.isEmpty()){
+                response = new UploadModelResponse("No huggingface token added to the account.",
+                        enums.UploadAuthState.NO_HF_TOKEN);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response.getMsg());
+            }
+            CompletableFuture.runAsync(() -> {
+                boolean success = false;
+                for (Key token : tokens) {
+                    String loginCMD = String.format("huggingface-cli login --token %s", token.getContent());
+                    try {
+                        Process loginProcess = Runtime.getRuntime().exec(loginCMD);
+                        int loginExitCode = loginProcess.waitFor();
+                        if (loginExitCode == 0){
+                            String downloadCMD = String.format(
+                                   "huggingface-cli download %s --resume-download --local-dir %s",
+                                    hf_path, dir);
+                            Process downloadProcess = Runtime.getRuntime().exec(downloadCMD);
+                            
+                            // print download process
+                            try (BufferedReader reader = new BufferedReader(
+                                    new InputStreamReader(downloadProcess.getInputStream()))) {
+                                String line;
+                                while ((line = reader.readLine()) != null) {
+                                    System.out.println("[HuggingFace Download] " + line);
+                                }
+                            }
+                            
+                            int downloadExitCode = downloadProcess.waitFor();
+                            if (downloadExitCode == 0){
+                               success = true;
+                               break;
+                            }
+                        }
+                    } catch (IOException e) {
+                        System.err.println("HuggingFace io exception: " + e.getMessage());
+                    } catch (InterruptedException e) {
+                        System.err.println("HuggingFace download interrupted: " + e.getMessage());
+                    } catch (Exception e) {
+                        System.err.println("HuggingFace unknown exception: " + e.getMessage());
+                    }
+                }
+                if(success){
+                    t.setState(enums.TaskState.QUEUED);
+                    taskService.updateById(t);
+                }else{
+                    taskService.removeById(t);
+                }
+                taskService.updateTask(t, !success);
+            });
+        }
         return ResponseEntity.ok(version);
     }
 
@@ -97,6 +155,7 @@ public class TaskController {
                           @RequestParam String mname,
                           @RequestParam String tname,
                           @RequestParam boolean success) {
+        // local models successfully uploaded, start training task
         Task task = getTask(uid, mname, tname);
         assert task != null;
         if (success) {
@@ -113,10 +172,12 @@ public class TaskController {
                                              @RequestBody UploadModelRequest request) throws IOException {
         String dir_name = request.getMname() + "-" + request.getTname();
         String name = dir_name + AddreessManager.getSeperator() + request.getFname();
-        String remotePath = AddreessManager.getUploadedPath(uid, name);
+        String remotePath = AddreessManager.getUploadedPath(uid, name, request.isNeed_train());
         File file = new File(remotePath);
         if (file.exists()) {
-            String old = JsonOperator.getMd5(AddreessManager.getUploadedPath(uid, dir_name), request.getFname());
+            String old = JsonOperator.getMd5(
+                    AddreessManager.getUploadedPath(uid, dir_name, request.isNeed_train()),
+                    request.getFname());
             assert old != null;
             if (!old.equals(request.getMd5())) {
                 file.delete();
@@ -127,7 +188,9 @@ public class TaskController {
                         .build();
             }
         }
-        JsonOperator.writeMd5(AddreessManager.getUploadedPath(uid, dir_name), request.getFname(), request.getMd5());
+        JsonOperator.writeMd5(
+                AddreessManager.getUploadedPath(uid, dir_name, request.isNeed_train()),
+                request.getFname(), request.getMd5());
         return ResponseEntity.notFound().build();
     }
 
@@ -138,6 +201,7 @@ public class TaskController {
             @RequestParam String mname,
             @RequestParam String tname,
             @RequestParam String fname,
+            @RequestParam boolean need_train,
             @RequestBody byte[] chunk) throws IOException {
         String name = mname + "-" + tname + AddreessManager.getSeperator() + fname;
         String[] range = contentRange.split(" ")[1].split("/");
@@ -146,7 +210,7 @@ public class TaskController {
         long totalSize = Long.parseLong(range[1]);
 
         // create files
-        File file = new File(AddreessManager.getUploadedPath(uid, name));
+        File file = new File(AddreessManager.getUploadedPath(uid, name, need_train));
         if (!file.exists()) {
             file.getParentFile().mkdirs();
             file.createNewFile();
@@ -164,7 +228,11 @@ public class TaskController {
     }
 
     @PostMapping("/client/cancel")
-    public ResponseEntity<Boolean> cancelTask(@RequestAttribute("uid") String uid, @RequestParam String mname, @RequestParam String tname) {
+    public ResponseEntity<Boolean> cancelTask(
+            @RequestAttribute("uid") String uid,
+            @RequestParam String mname,
+            @RequestParam String tname
+    ) {
         Task task = getTask(uid, mname, tname);
         if (task == null || task.getState() == enums.TaskState.FAILED || task.getState() == enums.TaskState.SUCCESS) {
             return ResponseEntity.notFound().build();

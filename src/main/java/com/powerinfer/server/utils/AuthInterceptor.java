@@ -10,18 +10,11 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-//import java.text.SimpleDateFormat;
-//import java.util.Date;
 
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
     @Autowired
     private KeyService keyService;
-//
-//    private String formatTimestamp(long timestamp) {
-//        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-//        return sdf.format(new Date(timestamp));
-//    }
 
 
     @Override
@@ -52,21 +45,27 @@ public class AuthInterceptor implements HandlerInterceptor {
             return false;
         }
         // check signature
-        ProcessBuilder pb = new ProcessBuilder("python3", AddreessManager.getVerifyPythonPath(), pubkey, timestamp_str, signature);
+        ProcessBuilder pb = new ProcessBuilder("/mnt/miniconda3/bin/python", //FIXME: python path
+                AddreessManager.getVerifyPythonPath(), pubkey, timestamp_str, signature);
         pb.redirectErrorStream(true);
         Process p = pb.start();
         BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
         String line;
         while ((line = reader.readLine()) != null) {
-            if (!line.equals("True")) {
-                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                response.getWriter().write("Signature verification failed.");
-                return false;
-            }
+            System.err.println("[verify.py] "+line);
+//            if (!line.equals("True")) {
+//                System.err.println("[verify.py]"+line);
+//                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+//                response.getWriter().write("Signature verification failed.");
+//                return false;
+//            }
         }
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        response.getWriter().write("Signature verification failed.");
+        return false;
 
-        request.setAttribute("uid", key.getUid());
-
-        return true;
+//        request.setAttribute("uid", key.getUid());
+//
+//        return true;
     }
 }

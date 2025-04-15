@@ -3,8 +3,7 @@ package com.powerinfer.server.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.powerinfer.server.utils.enums;
-
-import java.util.Date;
+import java.time.OffsetDateTime;
 
 @TableName("models")
 public class Model {
@@ -15,7 +14,7 @@ public class Model {
     private enums.Visibility visibility;
     @TableField("numDown")
     private int numDown; // number of download times
-    private Date date; // last updated time
+    private OffsetDateTime date; // last updated time
     private String uid;
     private String types; // use , to separate different types
     @TableField(exist = false)
@@ -25,7 +24,7 @@ public class Model {
     public Model(){
         this.visibility = enums.Visibility.PUBLIC;
         this.numDown = 0;
-        this.date = new Date();
+        this.date = OffsetDateTime.now();
         this.types = "";
     }
     public Model(String name, String uid, enums.Visibility visibility){
@@ -33,7 +32,7 @@ public class Model {
         this.uid = uid;
         this.visibility = visibility;
         this.numDown = 0;
-        this.date = new Date();
+        this.date = OffsetDateTime.now();
         this.types = "";
     }
 
@@ -46,10 +45,10 @@ public class Model {
     public String getMid() { return mid;}
     public String getName() { return name;}
     public int getNumDown() { return numDown;}
-    public Date getDate() { return date;}
+    public OffsetDateTime getDate() { return date;}
     public String getUid() { return uid;}
     public void update(String size){
-        this.date = new Date();
+        this.date = OffsetDateTime.now();
         String[] sizes = types.split(",");
         boolean has = false;
         for(String s: sizes){

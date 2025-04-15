@@ -149,7 +149,7 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
         Type type = typeService.getById(task.getTid());
         assert type != null;
         type.updateVersion(task.getVersion());
-        type.updateDir(task.getDir());
+        type.updateDir(task.getOutputDir());
         typeService.updateById(type);
         Model model =  modelService.getById(type.getMid());
         assert model != null;
@@ -167,8 +167,10 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
             this.updateById(task);
             log.info("Task started for tid {} started.", task.getTid());
             try {
-                int exitCode = task.execute();
-                // TODO: clean up and store into db
+                if(task.getTrain()){
+                    int exitCode = task.execute();
+                    // clean up and store into db
+                }
                 task.setState(enums.TaskState.SUCCESS);
                 updateType(task);
             } catch (Exception e) {
@@ -196,11 +198,12 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
     }
 
     @Override
-    public void addTask(String tid, String dir, String version){
-        Task task = new Task(tid, dir, version);
+    public Task addTask(String tid, String dir, String version, boolean needTrain, String output_dir) {
+        Task task = new Task(tid, dir, version, needTrain, output_dir);
         task.setCreated();
         TaskQueue.add(task);
         this.save(task);
+        return task;
     }
 
     @Override

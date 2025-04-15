@@ -75,6 +75,21 @@ public class Type {
         return structure;
     }
 
+    private long calculateFolderSize(File folder) {
+        long length = 0;
+        File[] files = folder.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    length += calculateFolderSize(file);
+                } else {
+                    length += file.length();
+                }
+            }
+        }
+        return length;
+    }
+
     private Map<String, Object> getFileSize(String path) {
         size = 0;
         File folder = new File(path);
@@ -83,10 +98,14 @@ public class Type {
         if (files != null) {
             for (File file : files) {
                 if (file.getName().startsWith(".")) continue;
-                if (file.isDirectory()) {
-                    structure.put(file.getName(), getFileSize(file.getPath()));
+                if (file.isDirectory() && file.getName().equals("activation")) {
+                    long folderSize = calculateFolderSize(file);
+                    structure.put("activation", folderSize);
+                    size += folderSize;
                 } else {
-                    structure.put(file.getName(), file.length());
+                    if (file.getName().endsWith(".gguf")) structure.put("model", file.length());
+                    if (file.getName().equals("config.json")) structure.put("config", file.length());
+                    if (file.getName().equals("README.md")) structure.put("readme", file.length());
                     size += file.length();
                 }
             }

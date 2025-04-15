@@ -29,6 +29,7 @@ public class enums {
     public enum UploadAuthState {
         ALLOWED,
         DENIED,
-        NEEDS_CANCEL
+        NEEDS_CANCEL,
+        NO_HF_TOKEN
     }
 }

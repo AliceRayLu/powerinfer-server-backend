@@ -9,7 +9,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @TableName("tasks")
 public class Task {
@@ -23,11 +23,14 @@ public class Task {
     @JsonProperty("version")
     private String version;
     @JsonProperty("created")
-    private LocalDateTime created;
+    private OffsetDateTime created;
     @JsonProperty("started")
-    private LocalDateTime started;
+    private OffsetDateTime started;
     @JsonProperty("finished")
-    private LocalDateTime finished;
+    private OffsetDateTime finished;
+    @JsonProperty("train")
+    private boolean train;
+
     @TableField(exist = false)
     @JsonProperty("queue")
     private int queue;
@@ -41,11 +44,16 @@ public class Task {
     @JsonProperty("runningTime")
     private long runningTime; // minutes
 
-    public Task(String tid, String dir, String version) {
+    @TableField(exist = false)
+    private String output_dir;
+
+    public Task(String tid, String dir, String version, boolean needTrain, String output_dir) {
         this.tid = tid;
         this.dir = dir;
         this.state = enums.TaskState.UPLOADING;
         this.version = version;
+        this.train = needTrain;
+        this.output_dir = output_dir;
     }
 
     public enums.TaskState getState() { return state; }
@@ -54,15 +62,19 @@ public class Task {
     public String getDir() { return dir; }
     public String getVersion() { return version; }
     public String getId() { return id; }
-    public LocalDateTime getCreated() { return created; }
+    public OffsetDateTime getCreated() { return created; }
+    public boolean getTrain() { return train; }
+    public String getOutputDir() { return output_dir; }
 
-    public void setCreated() { this.created = LocalDateTime.now(); }
-    public void setStarted() { this.started = LocalDateTime.now(); }
-    public void setFinished() { this.finished = LocalDateTime.now(); }
+    public void setCreated() { this.created = OffsetDateTime.now(); }
+    public void setStarted() { this.started = OffsetDateTime.now(); }
+    public void setFinished() { this.finished = OffsetDateTime.now(); }
     public void setQueue(int queue) { this.queue = queue; }
     public void setProgress(int progress) { this.progress = progress; }
     public void setWaitingTime(long waitingTime) { this.waitingTime = waitingTime; }
     public void setRunningTime(long runningTime) { this.runningTime = runningTime; }
+    public void setTrain(boolean need_train) { this.train = need_train; }
+    public void setOutput_dir(String output_dir) { this.output_dir = output_dir; }
 
     public int execute() throws IOException, InterruptedException {
         System.out.println("==============> Starting to execute task " + tid);

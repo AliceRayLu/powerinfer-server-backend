@@ -6,10 +6,11 @@ import java.nio.file.Paths;
 
 public class AddreessManager {
     // FIXME: script path
-    private static final String store_folder = "D://store";
-    private static final String train_folder = "D://train";
-    private static final String train_python_script = "D:\\projects\\LLM\\server\\src\\main\\resources\\train.py";
-    private static final String verify_python_script = "D:\\projects\\LLM\\server\\src\\main\\resources\\verify.py";
+    private static final String baseDir = "/mnt/lbh/.powerinfer/";
+    private static final String store_folder = baseDir + "store/";
+    private static final String train_folder = baseDir + "train/";
+    private static final String train_python_script = baseDir + "train.py";
+    private static final String verify_python_script = baseDir + "verify.py";
     private static final String seperator = File.separator;
 
     private static String normalize(String path) {
@@ -17,10 +18,10 @@ public class AddreessManager {
     }
     public static String getTrainDir() { return normalize(train_folder); }
     public static String getSeperator() { return seperator; }
-    public static String getUploadedPath(String uid, String name) {
-        return normalize(train_folder + seperator + uid + seperator + name);
-    }
-    public static String getStorePath(String uid, String name) {
+    public static String getUploadedPath(String uid, String name, boolean need_train) {
+        if (need_train) {
+            return normalize(train_folder + seperator + uid + seperator + name);
+        }
         return normalize(store_folder + seperator + uid + seperator + name);
     }
 

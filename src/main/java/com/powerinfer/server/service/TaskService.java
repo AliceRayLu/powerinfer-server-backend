@@ -6,7 +6,7 @@ import com.powerinfer.server.responseParams.UploadModelResponse;
 import reactor.core.publisher.Flux;
 
 public interface TaskService extends IService<Task> {
-    void addTask(String tid, String dir, String version);
+    Task addTask(String tid, String dir, String version, boolean needTrain, String output_dir);
     int checkPos(String tid);
     UploadModelResponse checkAuth(String uid, String dir_name);
     Flux<Task> findByTid(String tid);
