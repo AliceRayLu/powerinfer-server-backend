@@ -96,6 +96,7 @@ public class TaskController {
         type = typeService.getTypeByMidAndName(model.getMid(), tname);
         Task t = taskService.addTask(type.getTid(), dir, version, need_train, output_dir);
         if (hf_path != null && !hf_path.isEmpty()) {
+            System.err.println("Entering dealing with hf");
             List<Key> tokens = keyService.getHfListOfUser(uid);
             if(tokens == null || tokens.isEmpty()){
                 response = new UploadModelResponse("No huggingface token added to the account.",
@@ -103,6 +104,7 @@ public class TaskController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response.getMsg());
             }
             CompletableFuture.runAsync(() -> {
+                System.err.println("Entering async function running.");
                 boolean success = false;
                 for (Key token : tokens) {
                     String loginCMD = String.format("huggingface-cli login --token %s", token.getContent());
@@ -110,24 +112,26 @@ public class TaskController {
                         Process loginProcess = Runtime.getRuntime().exec(loginCMD);
                         int loginExitCode = loginProcess.waitFor();
                         if (loginExitCode == 0){
+                            System.err.println("Huggingface login successful.");
                             String downloadCMD = String.format(
                                    "huggingface-cli download %s --resume-download --local-dir %s",
                                     hf_path, dir);
                             Process downloadProcess = Runtime.getRuntime().exec(downloadCMD);
-                            
+                            System.err.println("Starting Huggingface download.");
                             // print download process
                             try (BufferedReader reader = new BufferedReader(
                                     new InputStreamReader(downloadProcess.getInputStream()))) {
                                 String line;
                                 while ((line = reader.readLine()) != null) {
-                                    System.out.println("[HuggingFace Download] " + line);
+                                    System.err.println("[HuggingFace Download] " + line);
                                 }
                             }
                             
                             int downloadExitCode = downloadProcess.waitFor();
                             if (downloadExitCode == 0){
-                               success = true;
-                               break;
+                                System.err.println("Huggingface download successful.");
+                                success = true;
+                                break;
                             }
                         }
                     } catch (IOException e) {

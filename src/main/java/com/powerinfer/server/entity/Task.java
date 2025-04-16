@@ -94,20 +94,58 @@ public class Task {
     public void setOutput_dir(String output_dir) { this.outputDir = output_dir; }
 
     public int execute() throws IOException, InterruptedException {
-        System.out.println("==============> Starting to execute task " + tid);
-        ProcessBuilder pb = new ProcessBuilder("python", AddreessManager.getTrainPythonPath(), dir);
+        System.err.println("==============> Starting to execute task " + tid);
+        ProcessBuilder changeScript = new ProcessBuilder(
+                AddreessManager.getPythonPath(),
+                AddreessManager.getWrite_yaml_script(),
+                dir, outputDir,
+                AddreessManager.getTrain_yaml(),
+                AddreessManager.getMerge_path()
+        );
+
+        ProcessBuilder trainPB = new ProcessBuilder(
+                "llamafactory-cli", "train", AddreessManager.getTrain_yaml()
+        );
+
+        ProcessBuilder mergePB = new ProcessBuilder(
+                "llamafactory-cli", "export", AddreessManager.getMerge_path()
+        );
+    
+
+        int exitCode = executeProcess(changeScript, "Change Script");
+        if (exitCode != 0) {
+            return exitCode;
+        }
+    
+        exitCode = executeProcess(trainPB, "Train Process");
+        if (exitCode != 0) {
+            return exitCode;
+        }
+    
+        exitCode = executeProcess(mergePB, "Merge Process");
+        return exitCode;
+    }
+    
+    private int executeProcess(ProcessBuilder pb, String processName) throws IOException, InterruptedException {
+        System.err.println("==============> Starting " + processName);
         pb.redirectErrorStream(true);
         Process p = pb.start();
-        if (!p.isAlive()) {
-            throw new IOException("Failed to start Python process");
-        }
+    
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                System.out.println("[Task " + tid + "] " + line);
+                System.out.println("[" + processName + "] " + line);
             }
         }
-        return p.waitFor();
+    
+        int exitCode = p.waitFor();
+        if (exitCode != 0) {
+            System.err.println("==============> " + processName + " failed with exit code: " + exitCode);
+        } else {
+            System.err.println("==============> " + processName + " completed successfully");
+        }
+    
+        return exitCode;
     }
 
 

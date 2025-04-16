@@ -173,6 +173,9 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
                     log.info("Start training...");
                     int exitCode = task.execute();
                     // clean up and store into db
+                    if (exitCode != 0) {
+                        throw new Exception();
+                    }
                 }
                 task.setState(enums.TaskState.SUCCESS);
                 log.info("finished training, start to update type");
@@ -182,6 +185,9 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
                 log.error("Task id {} failed: {}", task.getId(), e.getMessage());
             } finally {
                 task.setFinished();
+                if(task.getTrain()){
+                    task.cleanUp();
+                }
                 TaskQueue.complete();
                 this.updateById(task);
             }
@@ -190,7 +196,7 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
         if(id != null){
             Task old = this.getById(id);
             if (old != null) {
-                old.cleanUp(); // TODO:
+                old.cleanUp();
                 this.removeById(id);
                 Type type = typeService.getById(old.getTid());
                 assert type != null;

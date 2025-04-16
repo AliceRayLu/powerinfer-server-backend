@@ -45,8 +45,10 @@ public class AuthInterceptor implements HandlerInterceptor {
             return false;
         }
         // check signature
-        ProcessBuilder pb = new ProcessBuilder("/mnt/miniconda3/bin/python", //FIXME: python path
-                AddreessManager.getVerifyPythonPath(), pubkey, timestamp_str, signature);
+        ProcessBuilder pb = new ProcessBuilder(
+                AddreessManager.getPythonPath(), //FIXME: python path
+                AddreessManager.getVerifyPythonPath(),
+                pubkey, timestamp_str, signature);
         pb.redirectErrorStream(true);
         Process p = pb.start();
         BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
