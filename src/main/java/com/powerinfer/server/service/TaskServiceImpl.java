@@ -18,9 +18,10 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.ListIterator;
 
 @Service
@@ -136,7 +137,7 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
             while (iterator.hasNext()) {
                 Task task = iterator.next();
                 if (task.getState() == enums.TaskState.UPLOADING
-                        && ChronoUnit.DAYS.between(task.getCreated(), LocalDateTime.now()) >= 1) {
+                        && ChronoUnit.DAYS.between(task.getCreated(), OffsetDateTime.now()) >= 1) {
                     iterator.remove();
                     return task.getId();
                 }
@@ -149,6 +150,7 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
         Type type = typeService.getById(task.getTid());
         assert type != null;
         type.updateVersion(task.getVersion());
+        log.info("Task output dir: {}", task.getOutputDir());
         type.updateDir(task.getOutputDir());
         typeService.updateById(type);
         Model model =  modelService.getById(type.getMid());
@@ -168,10 +170,12 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
             log.info("Task started for tid {} started.", task.getTid());
             try {
                 if(task.getTrain()){
+                    log.info("Start training...");
                     int exitCode = task.execute();
                     // clean up and store into db
                 }
                 task.setState(enums.TaskState.SUCCESS);
+                log.info("finished training, start to update type");
                 updateType(task);
             } catch (Exception e) {
                 task.setState(enums.TaskState.FAILED);
@@ -295,7 +299,12 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
 
     @Override
     public Task findLatestTaskByTid(String tid) {
-        return taskMapper.selectList(new QueryWrapper<Task>().eq("tid", tid).orderByDesc("created")).get(0);
+        List<Task> list = taskMapper.selectList(new QueryWrapper<Task>().eq("tid", tid)
+                        .select("id", "tid", "dir", "version",
+                                "state", "created", "finished", "started",
+                                "train", "outputDir")
+                .orderByDesc("created"));
+        return list.get(0);
     }
 
     @Override

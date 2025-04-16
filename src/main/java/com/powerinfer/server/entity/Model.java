@@ -58,7 +58,10 @@ public class Model {
             }
         }
         if(!has){
-            types = types + "," + size;
+            if(!types.isEmpty()){
+                types = types+",";
+            }
+            types = types + size;
         }
     }
     public void addDown(){

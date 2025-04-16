@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.powerinfer.server.utils.AddreessManager;
 import com.powerinfer.server.utils.enums;
+import org.apache.ibatis.type.EnumTypeHandler;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -17,9 +18,12 @@ public class Task {
     private String id;
     private String tid; // type id
     private String dir; // the absolute path
-    @EnumValue
+
     @JsonProperty("state")
+    @TableField(value = "state", typeHandler = EnumTypeHandler.class)
+    @EnumValue
     private enums.TaskState state;
+
     @JsonProperty("version")
     private String version;
     @JsonProperty("created")
@@ -29,6 +33,7 @@ public class Task {
     @JsonProperty("finished")
     private OffsetDateTime finished;
     @JsonProperty("train")
+    @TableField("train")
     private boolean train;
 
     @TableField(exist = false)
@@ -44,16 +49,28 @@ public class Task {
     @JsonProperty("runningTime")
     private long runningTime; // minutes
 
-    @TableField(exist = false)
-    private String output_dir;
+    @TableField("outputDir")
+    @JsonProperty("outputDir")
+    private String outputDir;
 
+    public Task(){}
+    public Task(String tid, String dir, String version, enums.TaskState state, OffsetDateTime created, OffsetDateTime started, OffsetDateTime finished, boolean train) {
+        this.tid = tid;
+        this.dir = dir;
+        this.version = version;
+        this.state = state;
+        this.created = created;
+        this.started = started;
+        this.finished = finished;
+        this.train = train;
+    }
     public Task(String tid, String dir, String version, boolean needTrain, String output_dir) {
         this.tid = tid;
         this.dir = dir;
         this.state = enums.TaskState.UPLOADING;
         this.version = version;
         this.train = needTrain;
-        this.output_dir = output_dir;
+        this.outputDir = output_dir;
     }
 
     public enums.TaskState getState() { return state; }
@@ -64,7 +81,7 @@ public class Task {
     public String getId() { return id; }
     public OffsetDateTime getCreated() { return created; }
     public boolean getTrain() { return train; }
-    public String getOutputDir() { return output_dir; }
+    public String getOutputDir() { return outputDir; }
 
     public void setCreated() { this.created = OffsetDateTime.now(); }
     public void setStarted() { this.started = OffsetDateTime.now(); }
@@ -74,7 +91,7 @@ public class Task {
     public void setWaitingTime(long waitingTime) { this.waitingTime = waitingTime; }
     public void setRunningTime(long runningTime) { this.runningTime = runningTime; }
     public void setTrain(boolean need_train) { this.train = need_train; }
-    public void setOutput_dir(String output_dir) { this.output_dir = output_dir; }
+    public void setOutput_dir(String output_dir) { this.outputDir = output_dir; }
 
     public int execute() throws IOException, InterruptedException {
         System.out.println("==============> Starting to execute task " + tid);

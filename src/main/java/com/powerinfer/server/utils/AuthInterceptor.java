@@ -22,7 +22,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         String pubkey = request.getHeader("pubkey");
         String timestamp_str = request.getHeader("timestamp");
         String signature = request.getHeader("signature");
-
+        System.err.println("Received signature: " + signature);
 
         if (pubkey == null || timestamp_str == null || signature == null) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST); // Status Code:400
@@ -52,20 +52,16 @@ public class AuthInterceptor implements HandlerInterceptor {
         BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
         String line;
         while ((line = reader.readLine()) != null) {
-            System.err.println("[verify.py] "+line);
-//            if (!line.equals("True")) {
-//                System.err.println("[verify.py]"+line);
-//                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-//                response.getWriter().write("Signature verification failed.");
-//                return false;
-//            }
+//            System.err.println("[verify.py] "+line);
+            if (!line.equals("True")) {
+                System.err.println("[verify.py]"+line);
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.getWriter().write("Signature verification failed.");
+                return false;
+            }
         }
-        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-        response.getWriter().write("Signature verification failed.");
-        return false;
 
-//        request.setAttribute("uid", key.getUid());
-//
-//        return true;
+        request.setAttribute("uid", key.getUid());
+        return true;
     }
 }

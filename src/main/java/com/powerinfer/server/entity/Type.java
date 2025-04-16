@@ -52,7 +52,9 @@ public class Type {
 
     public void updateDir(String dir) {
         this.dir = dir;
+        System.err.println("[log info] dir: " + dir);
         this.dirInfo = String.valueOf(getJsonString(getStructure(dir)));
+        System.err.println("[log info] Successfully updated dir");
         this.sizeInfo = String.valueOf(getJsonString(getFileSize(dir)));
     }
 

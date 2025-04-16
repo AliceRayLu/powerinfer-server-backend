@@ -158,7 +158,9 @@ public class TaskController {
         // local models successfully uploaded, start training task
         Task task = getTask(uid, mname, tname);
         assert task != null;
+        System.err.println("[log info] task id: " + task.getId() + " task outputDir: " + task.getOutputDir());
         if (success) {
+            System.err.println("[log info] Moving into task queues" );
             task.setState(enums.TaskState.QUEUED);
             taskService.updateById(task);
         }else {
