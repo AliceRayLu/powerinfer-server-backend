@@ -25,7 +25,7 @@ public class ModelServiceImpl extends ServiceImpl<ModelMapper, Model> implements
         QueryWrapper<Model> queryWrapper = new QueryWrapper<Model>()
                 .eq("visibility", enums.Visibility.PUBLIC).orderByDesc(sortBy);
         if(keyword != null && !keyword.isEmpty()){
-            queryWrapper = queryWrapper.like("name", keyword);
+            queryWrapper = queryWrapper.apply("name ILIKE {0}", "%" + keyword + "%");
         }
         return modelMapper.selectPage(new Page<>(pageable.getPageNumber(), pageable.getPageSize()), queryWrapper);
     }
@@ -38,7 +38,7 @@ public class ModelServiceImpl extends ServiceImpl<ModelMapper, Model> implements
             queryWrapper = queryWrapper.eq("visibility", enums.Visibility.PUBLIC);
         }
         if(keyword != null && !keyword.isEmpty()){
-            queryWrapper = queryWrapper.like("name", keyword);
+            queryWrapper = queryWrapper.apply("name ILIKE {0}", "%" + keyword + "%");
         }
         return modelMapper.selectPage(new Page<>(pageable.getPageNumber(), pageable.getPageSize()), queryWrapper);
     }
