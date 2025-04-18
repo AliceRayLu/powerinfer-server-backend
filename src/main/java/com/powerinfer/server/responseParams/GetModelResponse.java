@@ -21,4 +21,5 @@ public class GetModelResponse {
     public void setMessage(String message) {this.message = message;}
 
     public Type getModelType() {return modelType;}
+    public enums.GetModelState getState() {return state;}
 }
