@@ -5,6 +5,8 @@ import com.powerinfer.server.requestParams.ChangePasswdRequest;
 import com.powerinfer.server.responseParams.UserRegisterResponse;
 import com.powerinfer.server.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -57,15 +59,21 @@ public class UserController {
     }
 
     @PostMapping("/getInfo")
-    public User getInfo(@RequestParam String uid, @RequestParam String uname){
+    public ResponseEntity<User> getInfo(@RequestParam String uid, @RequestParam String uname){
         if (uname != null && !uname.isEmpty()) {
             User user = userService.getUserByUsername(uname);
-            user.setPasswd(null);
-            return user;
+            if(user != null) {
+                user.setPasswd(null);
+                return ResponseEntity.ok(user);
+            }
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
         User user = userService.getById(uid);
-        user.setPasswd(null);
-        return user;
+        if (user != null) {
+            user.setPasswd(null);
+            return ResponseEntity.ok(user);
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
     @PostMapping("/update")
