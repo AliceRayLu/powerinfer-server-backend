@@ -14,7 +14,7 @@ def verify_signature(pubkey: str, signature: str, data: str) -> str:
     """
     try:
         # 加载公钥
-        public_key = serialization.load_pem_public_key(pubkey.encode('utf-8'))
+        public_key = serialization.load_ssh_public_key(pubkey.encode('utf-8'))
 
         # 解码Base64签名
         signature_bytes = base64.b64decode(signature)
@@ -31,4 +31,4 @@ def verify_signature(pubkey: str, signature: str, data: str) -> str:
         return "False: " + str(e) + ""
 
 if __name__ == "__main__":
-    print(verify_signature(sys.argv[1], sys.argv[2], sys.argv[3]))
+    print(verify_signature(sys.argv[1], sys.argv[3], sys.argv[2]))
